@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dark: #0a0a0a;
+  --font-display: var(--font-poppins), sans-serif;
+  --font-body: var(--font-poppins), sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-family: var(--font-body);
+}
