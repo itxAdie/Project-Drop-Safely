@@ -41,6 +41,7 @@ export default function VerifyOtpPage() {
   const [isResending, setIsResending] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(OTP_EXPIRY_SECONDS);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const submitInFlight = useRef(false);
 
   // Redirect to login if no phone stored
   useEffect(() => {
@@ -112,6 +113,8 @@ export default function VerifyOtpPage() {
       toast.warning("Please enter the complete 6-digit code.");
       return;
     }
+    if (submitInFlight.current) return;
+    submitInFlight.current = true;
 
     setIsLoading(true);
     try {
@@ -145,6 +148,7 @@ export default function VerifyOtpPage() {
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
+      submitInFlight.current = false;
       setIsLoading(false);
     }
   }, [code, phone, login, router, toast]);

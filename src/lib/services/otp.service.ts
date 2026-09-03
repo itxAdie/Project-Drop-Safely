@@ -105,10 +105,27 @@ class OtpService implements IOtpService {
     const now = new Date();
 
     // Find the most recent unused OTP for this phone
-    const otp = await Otp.findOne({
+    let otp = await Otp.findOne({
       phone: normalized,
       isUsed: false,
     }).sort({ createdAt: -1 });
+
+    // ── Idempotency guard ──────────────────────────────────────────────
+    // A client may inadvertently submit the same (correct) OTP twice
+    // (e.g. auto-submit + button click). The first call consumes the OTP,
+    // so the second call would otherwise fail with "No active OTP found".
+    // If the most recent OTP for this phone is already used but its code
+    // matches, treat it as a successful repeat verification.
+    if (!otp && code && code.length > 0) {
+      const lastUsed = await Otp.findOne({
+        phone: normalized,
+        isUsed: true,
+      }).sort({ createdAt: -1 });
+      if (lastUsed && lastUsed.code === code) {
+        return true;
+      }
+      otp = null;
+    }
 
     if (!otp) {
       throw new AppError("No active OTP found. Please request a new one.", 400);

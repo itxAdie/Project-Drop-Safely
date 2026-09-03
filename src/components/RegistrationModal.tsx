@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { GraduationCap, Car, ArrowLeft, ArrowRight, Phone, ShieldCheck, User, MapPin, Clock } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
@@ -78,6 +79,7 @@ export default function RegistrationModal({
 }) {
   const toast = useToast();
   const { login } = useAuth();
+  const router = useRouter();
   const overlayRef = useRef<HTMLDivElement>(null);
 
   const [step, setStep] = useState<Step>("role");
@@ -362,7 +364,13 @@ export default function RegistrationModal({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed");
-      setStep("done");
+      if (role === "student") {
+        resetAll();
+        onClose();
+        router.push("/student");
+      } else {
+        setStep("done");
+      }
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : "Registration failed");
     } finally {

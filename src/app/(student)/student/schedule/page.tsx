@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Spinner";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { DateCalendar, toDateStr } from "@/components/ui/DateCalendar";
 import { fadeUp, stagger } from "@/lib/animations";
 import { CalendarOff, Plus, Trash2, Calendar } from "lucide-react";
 
@@ -59,7 +60,7 @@ export default function SchedulePage() {
   // Min date is tomorrow
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split("T")[0];
+  const minDate = toDateStr(tomorrow);
 
   const handleAddDayOff = useCallback(async () => {
     if (!date || !studentId) return;
@@ -222,14 +223,14 @@ export default function SchedulePage() {
         }
       >
         <div className="space-y-4">
-          <Input
-            label="Date"
-            type="text"
-            placeholder="YYYY-MM-DD"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-300">
+              Date<span className="ml-0.5 text-green-500">*</span>
+            </label>
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3">
+              <DateCalendar value={date} onChange={setDate} minDate={minDate} />
+            </div>
+          </div>
           <p className="text-[10px] text-gray-600">
             Must be tomorrow or later. Request before 9 PM the night before.
           </p>
