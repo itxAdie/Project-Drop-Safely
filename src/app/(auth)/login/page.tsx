@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Phone, ArrowRight, Shield } from "lucide-react";
+import { Phone, ArrowRight, Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
@@ -61,6 +61,17 @@ export default function LoginPage() {
       animate="visible"
       className="flex flex-col items-center"
     >
+      {/* Back to home */}
+      <motion.div variants={fadeUp} className="mb-6 w-full">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-light/40 transition-colors hover:text-light/70"
+        >
+          <ArrowLeft size={14} />
+          Back to Home
+        </Link>
+      </motion.div>
+
       {/* Logo */}
       <motion.div variants={fadeUp} className="mb-8 text-center">
         <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-green-500/10 ring-1 ring-green-500/20">

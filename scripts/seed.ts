@@ -219,18 +219,18 @@ async function seed() {
   // ── Demo Drivers ────────────────────────────────────────────────────────
   const demoDrivers = [
     // Lahore (5)
-    { phone: "03002220001", name: "Muhammad Ahmed", cnic: "35202-1234567-1", vehicleType: "van", vehicleCapacity: 14, vehicleRegNumber: "LEA-2024-101", city: "Lahore", isApproved: true, status: "approved", currentLocation: [74.4105, 31.487] },
+    { phone: "03002220001", name: "Muhammad Ahmed", cnic: "35202-1234567-1", vehicleType: "ac_van", vehicleCapacity: 14, vehicleRegNumber: "LEA-2024-101", city: "Lahore", isApproved: true, status: "approved", currentLocation: [74.4105, 31.487] },
     { phone: "03002220002", name: "Ali Raza", cnic: "35202-7654321-1", vehicleType: "mini_bus", vehicleCapacity: 18, vehicleRegNumber: "LEA-2024-102", city: "Lahore", isApproved: true, status: "approved", currentLocation: [74.294, 31.485] },
-    { phone: "03002220003", name: "Usman Tariq", cnic: "35202-1112223-3", vehicleType: "van", vehicleCapacity: 14, vehicleRegNumber: "LEA-2024-103", city: "Lahore", isApproved: false, status: "pending", currentLocation: null },
-    { phone: "03002220004", name: "Bilal Hussain", cnic: "35202-4445556-7", vehicleType: "car", vehicleCapacity: 4, vehicleRegNumber: "LEA-2024-104", city: "Lahore", isApproved: true, status: "approved", currentLocation: [74.35, 31.52] },
-    { phone: "03002220010", name: "Rizwan Ahmed", cnic: "35202-9988776-5", vehicleType: "van", vehicleCapacity: 14, vehicleRegNumber: "LEA-2024-105", city: "Lahore", isApproved: true, status: "approved", currentLocation: [74.38, 31.51] },
+    { phone: "03002220003", name: "Usman Tariq", cnic: "35202-1112223-3", vehicleType: "ac_van", vehicleCapacity: 14, vehicleRegNumber: "LEA-2024-103", city: "Lahore", isApproved: false, status: "pending", currentLocation: null },
+    { phone: "03002220004", name: "Bilal Hussain", cnic: "35202-4445556-7", vehicleType: "non_ac_van", vehicleCapacity: 4, vehicleRegNumber: "LEA-2024-104", city: "Lahore", isApproved: true, status: "approved", currentLocation: [74.35, 31.52] },
+    { phone: "03002220010", name: "Rizwan Ahmed", cnic: "35202-9988776-5", vehicleType: "ac_van", vehicleCapacity: 14, vehicleRegNumber: "LEA-2024-105", city: "Lahore", isApproved: true, status: "approved", currentLocation: [74.38, 31.51] },
     // Okara (2)
-    { phone: "03002220005", name: "Imran Khan", cnic: "37302-1234567-1", vehicleType: "van", vehicleCapacity: 14, vehicleRegNumber: "OKA-2024-201", city: "Okara", isApproved: true, status: "approved", currentLocation: [73.451, 30.8085] },
+    { phone: "03002220005", name: "Imran Khan", cnic: "37302-1234567-1", vehicleType: "ac_van", vehicleCapacity: 14, vehicleRegNumber: "OKA-2024-201", city: "Okara", isApproved: true, status: "approved", currentLocation: [73.451, 30.8085] },
     { phone: "03002220006", name: "Faisal Mehmood", cnic: "37302-7654321-3", vehicleType: "mini_bus", vehicleCapacity: 18, vehicleRegNumber: "OKA-2024-202", city: "Okara", isApproved: true, status: "approved", currentLocation: [73.44, 30.82] },
     // Faisalabad (3)
     { phone: "03002220007", name: "Saad Akhtar", cnic: "36102-5566778-9", vehicleType: "mini_bus", vehicleCapacity: 20, vehicleRegNumber: "FSD-2024-301", city: "Faisalabad", isApproved: true, status: "approved", currentLocation: [73.082, 31.418] },
-    { phone: "03002220008", name: "Hamid Nawaz", cnic: "36102-3344556-2", vehicleType: "van", vehicleCapacity: 14, vehicleRegNumber: "FSD-2024-302", city: "Faisalabad", isApproved: true, status: "approved", currentLocation: [73.075, 31.425] },
-    { phone: "03002220009", name: "Tariq Javed", cnic: "36102-8877665-4", vehicleType: "van", vehicleCapacity: 12, vehicleRegNumber: "FSD-2024-303", city: "Faisalabad", isApproved: false, status: "pending", currentLocation: null },
+    { phone: "03002220008", name: "Hamid Nawaz", cnic: "36102-3344556-2", vehicleType: "ac_van", vehicleCapacity: 14, vehicleRegNumber: "FSD-2024-302", city: "Faisalabad", isApproved: true, status: "approved", currentLocation: [73.075, 31.425] },
+    { phone: "03002220009", name: "Tariq Javed", cnic: "36102-8877665-4", vehicleType: "ac_van", vehicleCapacity: 12, vehicleRegNumber: "FSD-2024-303", city: "Faisalabad", isApproved: false, status: "pending", currentLocation: null },
   ];
 
   const driverIds: Record<string, mongoose.Types.ObjectId> = {};

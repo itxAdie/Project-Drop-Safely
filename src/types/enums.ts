@@ -86,10 +86,9 @@ export enum NotificationType {
 }
 
 export enum VehicleType {
-  VAN = "van",
+  AC_VAN = "ac_van",
+  NON_AC_VAN = "non_ac_van",
   MINI_BUS = "mini_bus",
-  BUS = "bus",
-  CAR = "car",
 }
 
 export enum TimeSlot {

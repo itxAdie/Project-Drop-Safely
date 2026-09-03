@@ -26,7 +26,7 @@ const driverSchema = new Schema<IDriver>(
     },
     vehicleType: {
       type: String,
-      enum: ["van", "mini_bus", "bus", "car"],
+      enum: ["ac_van", "non_ac_van", "mini_bus"],
       required: true,
     },
     vehicleCapacity: {

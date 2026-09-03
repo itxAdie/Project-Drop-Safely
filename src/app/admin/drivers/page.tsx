@@ -31,10 +31,9 @@ interface DriverRow {
 }
 
 const VEHICLE_OPTIONS = [
-  { value: "van", label: "Van (AC/Non-AC)" },
-  { value: "mini_bus", label: "Mini Bus" },
-  { value: "bus", label: "Bus" },
-  { value: "car", label: "Car" },
+  { value: "ac_van", label: "AC-Van" },
+  { value: "non_ac_van", label: "Non-AC Van" },
+  { value: "mini_bus", label: "Mini-Bus" },
 ];
 
 const EMPTY_FORM = {

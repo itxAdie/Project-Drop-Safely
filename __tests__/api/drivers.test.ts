@@ -14,7 +14,7 @@ describe("Driver API — Validators", () => {
       name: "Ahmed Driver",
       phone: "03001234567",
       cnic: "35202-1234567-1",
-      vehicleType: "van" as const,
+      vehicleType: "ac_van" as const,
       vehicleCapacity: 14,
       vehicleRegNumber: "LEA-2024-1234",
       city: "Lahore",
