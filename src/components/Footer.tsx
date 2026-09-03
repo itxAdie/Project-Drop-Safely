@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+
 
 const footerLinks = [
   {
@@ -10,6 +12,7 @@ const footerLinks = [
       { name: "Safety", href: "#safety" },
       { name: "How It Works", href: "#how-it-works" },
       { name: "Our Mission", href: "#our-mission" },
+      { name: "Login", href: "/login" },
     ],
   },
   {
@@ -17,12 +20,20 @@ const footerLinks = [
     items: [
       { name: "Contact Us", href: "/contact" },
       { name: "FAQs", href: "#faqs" },
-      { name: "Waitlist", action: "openWaitlist" },
+      { name: "Check Availability in your Area", action: "openRegister" },
+      { name: "Driver Registration", href: "/driver/register" },
+    ],
+  },
+  {
+    label: "Platform",
+    items: [
+      { name: "Admin Panel", href: "/admin-login" },
+      { name: "Student Login", href: "/login" },
     ],
   },
 ];
 
-export default function Footer({ onWaitlistOpen }: { onWaitlistOpen?: () => void }) {
+export default function Footer({ onRegisterOpen }: { onRegisterOpen?: () => void }) {
   return (
     <footer className="border-t border-white/10 bg-[#060606] px-6 py-16 text-white">
       <div className="mx-auto max-w-6xl">
@@ -109,18 +120,18 @@ export default function Footer({ onWaitlistOpen }: { onWaitlistOpen?: () => void
                   <li key={item.name}>
                     {"action" in item ? (
                       <button
-                        onClick={onWaitlistOpen}
+                        onClick={onRegisterOpen}
                         className="text-sm text-white/40 transition-colors hover:text-green-400"
                       >
                         {item.name}
                       </button>
                     ) : (
-                      <a
-                        href={item.href}
+                      <Link
+                        href={item.href!}
                         className="text-sm text-white/40 transition-colors hover:text-green-400"
                       >
                         {item.name}
-                      </a>
+                      </Link>
                     )}
                   </li>
                 ))}

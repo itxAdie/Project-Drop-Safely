@@ -79,8 +79,8 @@ export default function MissionSection() {
                 animate={isInView ? "visible" : "hidden"}
                 className="font-display text-3xl font-bold leading-tight text-white sm:text-4xl"
               >
-                Making every student&rsquo;s journey{" "}
-                <span className="text-green-500">safe and stress-free</span>.
+                Making Every Student&rsquo;s Journey{" "}
+                <span className="text-green-500">Safe and Stress-free</span>.
               </motion.h2>
 
               {/* Description */}

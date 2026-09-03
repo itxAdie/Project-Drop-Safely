@@ -62,7 +62,7 @@ const SCRIPT_URLS: Record<string, string> = {
 
 };
 
-const cityOptions = ["Lahore", "Okara", "Other"];
+const cityOptions = ["Lahore", "Okara"];
 export default function WaitlistModal({
   isOpen,
   onClose,

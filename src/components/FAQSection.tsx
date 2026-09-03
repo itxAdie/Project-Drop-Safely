@@ -17,7 +17,7 @@ const faqs = [
   {
     question: "How much will it cost?",
     answer:
-      "Pricing will depend on your area and route distance. Students who join the waiting list will receive early pricing information.",
+      "Pricing will depend on your area and route distance. Students who register will receive early pricing information.",
   },
   {
     question: "Can students from the same area travel together?",
@@ -117,7 +117,7 @@ function FAQItem({
   );
 }
 
-export default function FAQSection({ onWaitlistOpen }: { onWaitlistOpen?: () => void }) {
+export default function FAQSection({ onRegisterOpen }: { onRegisterOpen?: () => void }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
@@ -228,10 +228,10 @@ export default function FAQSection({ onWaitlistOpen }: { onWaitlistOpen?: () => 
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={onWaitlistOpen}
+                onClick={onRegisterOpen}
                 className="mt-6 w-full rounded-xl bg-green-500 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/20 transition-all hover:bg-green-500/90"
               >
-                Contact Us
+                Check Availability in your Area
               </motion.button>
             </div>
           </motion.div>

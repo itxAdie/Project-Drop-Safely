@@ -2,6 +2,7 @@
 
 import { motion, useMotionValue, useSpring, useTransform, useInView } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 
 // ── Ride Card ──
@@ -288,7 +289,8 @@ function TrackingCard() {
 }
 
 // ── Navbar ──
-function Navbar({ onWaitlistOpen }: { onWaitlistOpen: () => void }) {
+
+function Navbar({ onRegisterOpen }: { onRegisterOpen: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const scrollTo = (id: string) => {
@@ -333,11 +335,17 @@ function Navbar({ onWaitlistOpen }: { onWaitlistOpen: () => void }) {
                 {label}
               </a>
             ))}
+            <Link
+              href="/login"
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white transition-all hover:border-green-500/50 hover:text-green-400"
+            >
+              Login
+            </Link>
             <button
-              onClick={onWaitlistOpen}
+              onClick={onRegisterOpen}
               className="rounded-full bg-green-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-green-500/90 active:scale-95 shadow-[0_0_20px_rgba(34,197,94,0.3),0_0_40px_rgba(34,197,94,0.1)]"
             >
-              Check Availability
+              Check Availability in your Area
             </button>
           </div>
 
@@ -371,14 +379,20 @@ function Navbar({ onWaitlistOpen }: { onWaitlistOpen: () => void }) {
                   {label}
                 </button>
               ))}
+              <Link
+                href="/login"
+                className="w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                Login
+              </Link>
               <button
                 onClick={() => {
                   setMenuOpen(false);
-                  onWaitlistOpen();
+                  onRegisterOpen();
                 }}
                 className="mt-2 rounded-full bg-green-500 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-green-500/90 shadow-[0_0_20px_rgba(34,197,94,0.3),0_0_40px_rgba(34,197,94,0.1)]"
               >
-                Check availability
+                Check Availability in your Area
               </button>
             </div>
           </div>
@@ -407,7 +421,7 @@ const fadeUp = (delay: number) => ({
 });
 
 // ── Main Hero Section ──
-export default function HeroSection({ onWaitlistOpen }: { onWaitlistOpen?: () => void }) {
+export default function HeroSection({ onRegisterOpen }: { onRegisterOpen?: () => void }) {
   const textRef = useRef<HTMLDivElement>(null);
   const isTextInView = useInView(textRef, { once: true });
 
@@ -429,7 +443,7 @@ export default function HeroSection({ onWaitlistOpen }: { onWaitlistOpen?: () =>
         }}
       />
 
-      <Navbar onWaitlistOpen={() => onWaitlistOpen?.()} />
+      <Navbar onRegisterOpen={() => onRegisterOpen?.()} />
 
       <div className="relative mt-14 z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-6 pb-12">
         <div className="flex flex-1 flex-col items-center justify-center gap-16 pt-28 lg:flex-row lg:pt-0">
@@ -443,7 +457,7 @@ export default function HeroSection({ onWaitlistOpen }: { onWaitlistOpen?: () =>
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="font-display text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-6xl xl:text-7xl"
             >
-              Safe rides for female students.
+              Safe Rides For Female Students.
             </motion.h1>
 
             {/* Subtext */}
@@ -465,14 +479,29 @@ export default function HeroSection({ onWaitlistOpen }: { onWaitlistOpen?: () =>
               className="mt-8 flex flex-wrap gap-4"
             >
               <button
-                onClick={() => onWaitlistOpen?.()}
+                onClick={() => onRegisterOpen?.()}
                 className="group cursor-pointer flex items-center gap-2 rounded-full bg-green-500 px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-green-500/90 active:scale-95 shadow-[0_0_24px_rgba(34,197,94,0.35),0_0_48px_rgba(34,197,94,0.12),0_0_72px_rgba(34,197,94,0.06)]"
               >
-                Check availability in your area
+                Check Availability in your Area
                 <span className="transition-transform group-hover:translate-x-1">
                   &rarr;
                 </span>
               </button>
+            </motion.div>
+
+            <motion.div
+              variants={fadeUp(0.65)}
+              initial="hidden"
+              animate={isTextInView ? "visible" : "hidden"}
+              className="mt-5"
+            >
+              <Link
+                href="/login"
+                className="group inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-green-400"
+              >
+                Already registered?
+                <span className="transition-transform group-hover:translate-x-0.5">Login &rarr;</span>
+              </Link>
             </motion.div>
           </div>
 

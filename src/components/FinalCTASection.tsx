@@ -2,8 +2,10 @@
 
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
+import Link from "next/link";
 
-export default function FinalCTASection({ onWaitlistOpen }: { onWaitlistOpen?: () => void }) {
+
+export default function FinalCTASection({ onRegisterOpen }: { onRegisterOpen?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -55,7 +57,7 @@ export default function FinalCTASection({ onWaitlistOpen }: { onWaitlistOpen?: (
           transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
           className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-400"
         >
-          Join the waiting list and be among the first students to get access when routes open in your area.
+          Join the early access list and be among the first students to get access when routes open in your area.
         </motion.p>
 
         <motion.div
@@ -65,10 +67,10 @@ export default function FinalCTASection({ onWaitlistOpen }: { onWaitlistOpen?: (
           className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           <button
-            onClick={() => onWaitlistOpen?.()}
+            onClick={() => onRegisterOpen?.()}
             className="group cursor-pointer inline-flex items-center gap-2 rounded-full bg-green-500 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-green-500/90 active:scale-95 shadow-[0_0_24px_rgba(34,197,94,0.35)]"
           >
-            Join the Early Access List
+            Check Availability in your Area
             <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
           </button>
           <button
@@ -86,11 +88,26 @@ export default function FinalCTASection({ onWaitlistOpen }: { onWaitlistOpen?: (
           </button>
         </motion.div>
 
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
-          className="mt-8 text-sm text-gray-500"
+          className="mt-8"
+        >
+          <Link
+            href="/login"
+            className="group inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-green-400"
+          >
+            Already registered?
+            <span className="transition-transform group-hover:translate-x-0.5">Go to Dashboard &rarr;</span>
+          </Link>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.5, ease: "easeOut" }}
+          className="mt-6 text-sm text-gray-500"
         >
           For female students &bull; Parents welcome &bull; No payment required
         </motion.p>

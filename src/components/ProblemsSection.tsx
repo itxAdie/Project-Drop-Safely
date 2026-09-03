@@ -50,7 +50,7 @@ export default function ProblemsSection() {
               transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
               className="font-display mb-12 text-3xl font-bold text-white sm:text-4xl lg:text-5xl"
             >
-              University should be stressful{" "}
+              University Should Be Stressful{" "}
               <span className="text-green-500">enough</span>.
             </motion.h2>
 

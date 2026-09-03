@@ -4,7 +4,7 @@ import { motion, useInView } from "framer-motion";
 import { useRef, useState } from "react";
 import ShareModal from "./ShareModal";
 
-export default function EarlyAccessSection({ onWaitlistOpen }: { onWaitlistOpen?: () => void }) {
+export default function EarlyAccessSection({ onRegisterOpen }: { onRegisterOpen?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
   const [shareOpen, setShareOpen] = useState(false);
@@ -49,7 +49,7 @@ export default function EarlyAccessSection({ onWaitlistOpen }: { onWaitlistOpen?
           transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" }}
           className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-gray-500"
         >
-          If enough students from your area join the waiting list, we can activate a dedicated route.
+          If enough students from your area register, we can activate a dedicated route.
         </motion.p>
 
         {/* CTA */}
@@ -60,10 +60,10 @@ export default function EarlyAccessSection({ onWaitlistOpen }: { onWaitlistOpen?
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4"
         >
           <button
-            onClick={() => onWaitlistOpen?.()}
+            onClick={() => onRegisterOpen?.()}
             className="group cursor-pointer inline-flex items-center gap-2 rounded-full bg-green-500 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-green-500/90 active:scale-95 shadow-[0_0_24px_rgba(34,197,94,0.35)]"
           >
-            Join the Waiting List
+            Check Availability in your Area
             <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
           </button>
 
@@ -109,7 +109,7 @@ export default function EarlyAccessSection({ onWaitlistOpen }: { onWaitlistOpen?
               <p className="font-display text-4xl font-bold text-white sm:text-5xl">
                 300<span className="text-green-500">+</span>
               </p>
-              <p className="mt-1 text-sm text-gray-400">Students joined the waiting list</p>
+              <p className="mt-1 text-sm text-gray-400">Students registered so far</p>
             </motion.div>
 
             <div className="hidden h-12 w-px bg-white/10 sm:block" />

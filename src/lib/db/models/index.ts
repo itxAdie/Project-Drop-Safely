@@ -1,0 +1,13 @@
+export { User } from "./user.model";
+export { Student } from "./student.model";
+export { Driver } from "./driver.model";
+export { Route } from "./route.model";
+export { RouteCandidate } from "./route-candidate.model";
+export { Trip } from "./trip.model";
+export { Payment } from "./payment.model";
+export { City } from "./city.model";
+export { Zone } from "./zone.model";
+export { Notification } from "./notification.model";
+export { Otp } from "./otp.model";
+export { GpsLocation } from "./gps-location.model";
+export { Settings } from "./settings.model";

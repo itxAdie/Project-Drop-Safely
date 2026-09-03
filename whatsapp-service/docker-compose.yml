@@ -1,0 +1,21 @@
+services:
+  whatsapp-bot:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3001}:3001"
+    volumes:
+      - whatsapp-auth:/app/auth_info
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  whatsapp-auth:

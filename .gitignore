@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env
+.env.local
+.env.*.local
+!.env.example
+!whatsapp-service/.env.example
 
 # vercel
 .vercel
@@ -39,3 +43,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# documentation & markdown (may contain internal/credential details)
+docs/
+*.md
+
+# whatsapp service - session credentials & build artifacts
+whatsapp-service/auth_info/
+whatsapp-service/dist/
+whatsapp-service/node_modules/
+whatsapp-service/*.tsbuildinfo
