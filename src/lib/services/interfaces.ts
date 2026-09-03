@@ -34,6 +34,20 @@ export interface IStudentService {
   getStudentByUserId(userId: string): Promise<IStudent | null>;
   deactivateStudent(id: string): Promise<void>;
   markDayOff(studentId: string, date: string): Promise<void>;
+  submitDeposit(studentId: string, receiptUrl: string): Promise<IStudent>;
+  getDepositStatus(studentId: string): Promise<{
+    status: string;
+    amount: number;
+    receiptUrl?: string;
+    submittedAt?: Date;
+    verifiedAt?: Date;
+    rejectedAt?: Date;
+    refundedAt?: Date;
+    rejectionReason?: string;
+    hasAssignedRoute: boolean;
+    refundEligible: boolean;
+  }>;
+  adminUpdateDeposit(studentId: string, action: "verify" | "reject" | "refund", reason?: string): Promise<IStudent>;
 }
 
 // ===== Driver Service =====

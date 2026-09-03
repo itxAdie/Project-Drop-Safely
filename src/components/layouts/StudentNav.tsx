@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { href: "/student", label: "Home", icon: "🏠" },
+  { href: "/student/deposit", label: "Deposit", icon: "🛡️" },
   { href: "/student/schedule", label: "Schedule", icon: "📅" },
   { href: "/student/payments", label: "Payments", icon: "💳" },
   { href: "/student/route", label: "Route", icon: "🗺️" },

@@ -78,6 +78,34 @@ const studentSchema = new Schema<IStudent>(
     billingCycleStart: {
       type: Date,
     },
+    depositStatus: {
+      type: String,
+      enum: ["none", "submitted", "verified", "rejected", "refunded"],
+      default: "none",
+    },
+    depositAmount: {
+      type: Number,
+      default: 0,
+    },
+    depositReceiptUrl: {
+      type: String,
+    },
+    depositSubmittedAt: {
+      type: Date,
+    },
+    depositVerifiedAt: {
+      type: Date,
+    },
+    depositVerifiedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    depositRefundedAt: {
+      type: Date,
+    },
+    depositRejectionReason: {
+      type: String,
+    },
   },
   {
     timestamps: true,

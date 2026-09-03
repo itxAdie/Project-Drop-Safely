@@ -3,11 +3,13 @@
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Car, ArrowLeft, ArrowRight, Phone, ShieldCheck, User, MapPin, Clock } from "lucide-react";
+import { GraduationCap, Car, ArrowLeft, ArrowRight, Phone, ShieldCheck, User } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
+import { TimePicker } from "./ui/TimePicker";
 import { Spinner } from "./ui/Spinner";
+import { LocationPicker } from "@/components/maps/LocationPicker";
 import { useToast } from "./ui/Toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -100,6 +102,8 @@ export default function RegistrationModal({
   const [sInstitute, setSInstitute] = useState("");
   const [sCity, setSCity] = useState("");
   const [address, setAddress] = useState("");
+  const [sLat, setSLat] = useState<number | null>(null);
+  const [sLng, setSLng] = useState<number | null>(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [offDays, setOffDays] = useState<string[]>([]);
@@ -136,6 +140,15 @@ export default function RegistrationModal({
     setPhoneError("");
     setProfileError("");
     setOffDays([]);
+    setSCity("");
+    setAddress("");
+    setSLat(null);
+    setSLng(null);
+    setStartTime("");
+    setEndTime("");
+    setSName("");
+    setParentPhone("");
+    setSInstitute("");
   };
 
   const handleClose = useCallback(() => {
@@ -309,8 +322,10 @@ export default function RegistrationModal({
     let url: string;
 
     if (role === "student") {
-      if (!sName.trim() || !sInstitute.trim() || !sCity || !address.trim() || !startTime || !endTime) {
-        setProfileError("Please fill all required fields.");
+      if (!sName.trim() || !sInstitute.trim() || !sCity || sLat == null || sLng == null || !startTime || !endTime) {
+        setProfileError(sLat == null || sLng == null
+          ? "Please select your pickup location on the map."
+          : "Please fill all required fields.");
         return;
       }
       if (parentPhone && !/^(\+92|0)?[0-9]{10,11}$/.test(parentPhone.replace(/[\s\-\(\)]/g, ""))) {
@@ -323,8 +338,8 @@ export default function RegistrationModal({
         phone,
         parentPhone: parentPhone || undefined,
         pickupAddress: address,
-        pickupLat: 0,
-        pickupLng: 0,
+        pickupLat: sLat,
+        pickupLng: sLng,
         institute: sInstitute,
         city: sCity,
         classStartTime: startTime,
@@ -367,7 +382,7 @@ export default function RegistrationModal({
       if (role === "student") {
         resetAll();
         onClose();
-        router.push("/student");
+        router.push("/student/deposit");
       } else {
         setStep("done");
       }
@@ -670,30 +685,31 @@ export default function RegistrationModal({
                             onChange={(e) => setSCity(e.target.value)}
                             required
                           />
-                          <Input
-                            label="Home Address"
-                            placeholder="House #, Street, Area"
-                            value={address}
-                            onChange={(e) => setAddress(e.target.value)}
-                            required
-                            leftIcon={<MapPin size={15} />}
-                          />
-                          <div className="grid grid-cols-2 gap-3">
-                            <Input
-                              label="Class Start"
-                              placeholder="08:00"
-                              value={startTime}
-                              onChange={(e) => setStartTime(e.target.value)}
-                              required
-                              leftIcon={<Clock size={15} />}
+                          <div>
+                            <label className="mb-2 block text-sm font-medium text-gray-300">
+                              Pickup Location
+                              <span className="ml-0.5 text-green-500">*</span>
+                            </label>
+                            <LocationPicker
+                              onSelect={({ coordinates, address: addr }) => {
+                                setSLng(coordinates[0]);
+                                setSLat(coordinates[1]);
+                                setAddress(addr);
+                              }}
                             />
-                            <Input
-                              label="Class End"
-                              placeholder="16:00"
-                              value={endTime}
-                              onChange={(e) => setEndTime(e.target.value)}
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <TimePicker
+                              label="PickUp Time"
+                              value={startTime}
+                              onChange={setStartTime}
                               required
-                              leftIcon={<Clock size={15} />}
+                            />
+                            <TimePicker
+                              label="DropOff Time"
+                              value={endTime}
+                              onChange={setEndTime}
+                              required
                             />
                           </div>
                           <div>

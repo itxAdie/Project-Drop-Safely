@@ -1,6 +1,7 @@
 // ===== Clustering & Route Engine =====
 export const CLUSTER_RADIUS_KM = 3;
 export const MIN_STUDENTS_PER_ROUTE = 7;
+export const DEPOSIT_AMOUNT = 1000;
 export const MAX_TIME_SLOTS = 3;
 
 // ===== Billing & Payments =====

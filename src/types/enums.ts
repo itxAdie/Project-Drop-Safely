@@ -51,6 +51,14 @@ export enum PaymentStatus {
   OVERDUE = "overdue",
 }
 
+export enum DepositStatus {
+  NONE = "none",
+  SUBMITTED = "submitted",
+  VERIFIED = "verified",
+  REJECTED = "rejected",
+  REFUNDED = "refunded",
+}
+
 export enum NotificationChannel {
   IN_APP = "in_app",
   WHATSAPP = "whatsapp",

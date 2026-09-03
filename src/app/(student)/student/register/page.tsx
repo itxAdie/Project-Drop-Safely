@@ -10,6 +10,7 @@ import type { LocationPickerResult } from "@/components/maps/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { TimePicker } from "@/components/ui/TimePicker";
 import { Card } from "@/components/ui/Card";
 import { fadeUp, stagger } from "@/lib/animations";
 import {
@@ -328,23 +329,19 @@ export default function StudentRegisterPage() {
                     <p className="text-xs text-gray-500 mt-1">Your class timings and off days</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <Input
+                    <TimePicker
                       label="Class Start Time"
-                      placeholder="08:00"
                       value={classStartTime}
-                      onChange={(e) => setClassStartTime(e.target.value)}
+                      onChange={setClassStartTime}
                       error={errors.classStartTime}
                       required
-                      leftIcon={<Clock size={15} />}
                     />
-                    <Input
+                    <TimePicker
                       label="Class End Time"
-                      placeholder="16:00"
                       value={classEndTime}
-                      onChange={(e) => setClassEndTime(e.target.value)}
+                      onChange={setClassEndTime}
                       error={errors.classEndTime}
                       required
-                      leftIcon={<Clock size={15} />}
                     />
                   </div>
                   <div>

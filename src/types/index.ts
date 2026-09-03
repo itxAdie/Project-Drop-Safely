@@ -8,6 +8,7 @@ import type {
   TripStatus,
   TripDirection,
   PaymentStatus,
+  DepositStatus,
   NotificationChannel,
   NotificationType,
   VehicleType,
@@ -25,6 +26,7 @@ export type {
   TripStatus,
   TripDirection,
   PaymentStatus,
+  DepositStatus,
   NotificationChannel,
   NotificationType,
   VehicleType,
@@ -41,6 +43,7 @@ type RouteCandidateStatusString = `${RouteCandidateStatus}`;
 type TripStatusString = `${TripStatus}`;
 type TripDirectionString = `${TripDirection}`;
 type PaymentStatusString = `${PaymentStatus}`;
+type DepositStatusString = `${DepositStatus}`;
 type NotificationChannelString = `${NotificationChannel}`;
 type NotificationTypeString = `${NotificationType}`;
 type VehicleTypeString = `${VehicleType}`;
@@ -96,6 +99,14 @@ export interface IStudent {
   status: StudentStatusString;
   paymentStatus: PaymentStatusString;
   billingCycleStart?: Date;
+  depositStatus: DepositStatusString;
+  depositAmount?: number;
+  depositReceiptUrl?: string;
+  depositSubmittedAt?: Date;
+  depositVerifiedAt?: Date;
+  depositVerifiedBy?: Types.ObjectId;
+  depositRefundedAt?: Date;
+  depositRejectionReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }

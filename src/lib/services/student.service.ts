@@ -2,7 +2,7 @@ import { connectDB } from "@/lib/db/connection";
 import { Student, Route, User } from "@/lib/db/models";
 import { StudentRepository } from "@/lib/repositories/student.repository";
 import { NotFoundError, ConflictError, ValidationError, ForbiddenError } from "@/lib/errors";
-import { CLUSTER_RADIUS_KM, MIN_STUDENTS_PER_ROUTE } from "@/lib/constants";
+import { CLUSTER_RADIUS_KM, MIN_STUDENTS_PER_ROUTE, DEPOSIT_AMOUNT } from "@/lib/constants";
 import type { IStudent, IRoute } from "@/types";
 import type { IStudentService } from "./interfaces";
 
@@ -207,6 +207,99 @@ export class StudentService implements IStudentService {
       permanent: student.permanentOffDays as string[],
       sudden,
     };
+  }
+
+  async submitDeposit(studentId: string, receiptUrl: string): Promise<IStudent> {
+    await connectDB();
+    const student = await studentRepo.findById(studentId);
+    if (!student) throw new NotFoundError("Student");
+    if (student.depositStatus === "verified" || student.depositStatus === "refunded") {
+      throw new ValidationError("Deposit has already been confirmed");
+    }
+
+    await studentRepo.update(studentId, {
+      depositStatus: "submitted",
+      depositAmount: DEPOSIT_AMOUNT,
+      depositReceiptUrl: receiptUrl,
+      depositSubmittedAt: new Date(),
+      depositRejectionReason: undefined,
+    } as Partial<IStudent>);
+
+    const updated = await studentRepo.findById(studentId);
+    if (!updated) throw new NotFoundError("Student");
+    return updated;
+  }
+
+  async getDepositStatus(studentId: string): Promise<{
+    status: string;
+    amount: number;
+    receiptUrl?: string;
+    submittedAt?: Date;
+    verifiedAt?: Date;
+    rejectedAt?: Date;
+    refundedAt?: Date;
+    rejectionReason?: string;
+    hasAssignedRoute: boolean;
+    refundEligible: boolean;
+  }> {
+    await connectDB();
+    const student = await studentRepo.findById(studentId);
+    if (!student) throw new NotFoundError("Student");
+
+    return {
+      status: student.depositStatus as string,
+      amount: student.depositAmount || DEPOSIT_AMOUNT,
+      receiptUrl: student.depositReceiptUrl,
+      submittedAt: student.depositSubmittedAt,
+      verifiedAt: student.depositVerifiedAt,
+      rejectedAt: student.depositStatus === "rejected" ? student.updatedAt : undefined,
+      refundedAt: student.depositRefundedAt,
+      rejectionReason: student.depositRejectionReason,
+      hasAssignedRoute: !!student.assignedRouteId,
+      refundEligible:
+        student.depositStatus === "verified" && !student.assignedRouteId,
+    };
+  }
+
+  async adminUpdateDeposit(
+    studentId: string,
+    action: "verify" | "reject" | "refund",
+    reason?: string,
+  ): Promise<IStudent> {
+    await connectDB();
+    const student = await studentRepo.findById(studentId);
+    if (!student) throw new NotFoundError("Student");
+
+    if (action === "verify") {
+      if (student.depositStatus !== "submitted") {
+        throw new ValidationError("Only submitted deposits can be verified");
+      }
+      await studentRepo.update(studentId, {
+        depositStatus: "verified",
+        depositVerifiedAt: new Date(),
+        depositRejectionReason: undefined,
+      } as Partial<IStudent>);
+    } else if (action === "reject") {
+      if (student.depositStatus !== "submitted") {
+        throw new ValidationError("Only submitted deposits can be rejected");
+      }
+      await studentRepo.update(studentId, {
+        depositStatus: "rejected",
+        depositRejectionReason: reason,
+      } as Partial<IStudent>);
+    } else if (action === "refund") {
+      if (student.depositStatus !== "verified") {
+        throw new ValidationError("Only verified deposits can be refunded");
+      }
+      await studentRepo.update(studentId, {
+        depositStatus: "refunded",
+        depositRefundedAt: new Date(),
+      } as Partial<IStudent>);
+    }
+
+    const updated = await studentRepo.findById(studentId);
+    if (!updated) throw new NotFoundError("Student");
+    return updated;
   }
 }
 
