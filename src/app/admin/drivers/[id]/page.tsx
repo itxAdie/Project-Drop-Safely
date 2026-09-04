@@ -22,7 +22,10 @@ interface DriverDetail {
   vehicleCapacity: number;
   vehicleRegNumber: string;
   licenseUrl?: string;
-  policeVerificationUrl?: string;
+  licenseFrontUrl?: string;
+  licenseBackUrl?: string;
+  cnicFrontUrl?: string;
+  cnicBackUrl?: string;
   isApproved: boolean;
   status: string;
   city: string;
@@ -37,11 +40,11 @@ export default function DriverDetailPage() {
   const { token } = useAuth();
   const id = params.id as string;
 
-  const { data, isLoading } = useSWR<{ data: { driver: DriverDetail; routes: Array<{ _id: string; name: string }> } }>(`/api/drivers/${id}`);
+  const { data, isLoading } = useSWR<{ driver: DriverDetail; routes: Array<{ _id: string; name: string }> }>(`/api/drivers/${id}`);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const driver = data?.data?.driver;
-  const routes = data?.data?.routes || [];
+  const driver = data?.driver;
+  const routes = data?.routes || [];
 
   const handleApprove = async () => {
     setActionLoading(true);
@@ -174,33 +177,61 @@ export default function DriverDetailPage() {
       <Card variant="default" padding="sm" className="mb-6">
         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Documents</h3>
         <div className="space-y-2">
-          {driver.licenseUrl ? (
+          {driver.licenseFrontUrl ? (
             <a
-              href={driver.licenseUrl}
+              href={driver.licenseFrontUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors"
             >
               <FileText size={14} />
-              License Document
+              License — Front
               <ExternalLink size={12} />
             </a>
           ) : (
-            <p className="text-sm text-gray-600">No license uploaded</p>
+            <p className="text-sm text-gray-600">No license front uploaded</p>
           )}
-          {driver.policeVerificationUrl ? (
+          {driver.licenseBackUrl ? (
             <a
-              href={driver.policeVerificationUrl}
+              href={driver.licenseBackUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors"
             >
-              <Shield size={14} />
-              Police Verification
+              <FileText size={14} />
+              License — Back
               <ExternalLink size={12} />
             </a>
           ) : (
-            <p className="text-sm text-gray-600">No police verification uploaded</p>
+            <p className="text-sm text-gray-600">No license back uploaded</p>
+          )}
+          {driver.cnicFrontUrl ? (
+            <a
+              href={driver.cnicFrontUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors"
+            >
+              <FileText size={14} />
+              CNIC — Front
+              <ExternalLink size={12} />
+            </a>
+          ) : (
+            <p className="text-sm text-gray-600">No CNIC front uploaded</p>
+          )}
+          {driver.cnicBackUrl ? (
+            <a
+              href={driver.cnicBackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors"
+            >
+              <FileText size={14} />
+              CNIC — Back
+              <ExternalLink size={12} />
+            </a>
+          ) : (
+            <p className="text-sm text-gray-600">No CNIC back uploaded</p>
           )}
         </div>
       </Card>

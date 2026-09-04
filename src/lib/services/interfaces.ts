@@ -70,7 +70,10 @@ export interface IDriverService {
     vehicleRegNumber: string;
     city: string;
     licenseUrl?: string;
-    policeVerificationUrl?: string;
+    licenseFrontUrl?: string;
+    licenseBackUrl?: string;
+    cnicFrontUrl?: string;
+    cnicBackUrl?: string;
   }): Promise<IDriver>;
   approveDriver(id: string): Promise<void>;
   rejectDriver(id: string, reason: string): Promise<void>;

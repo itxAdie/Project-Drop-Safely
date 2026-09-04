@@ -785,6 +785,35 @@ async function seed() {
     console.log(`ℹ️  Demo GPS locations already exist (${existingGps})`);
   }
 
+  // ===== Seed FAQs =====
+  const faqsCollection = db.collection("faqs");
+  const existingFaqs = await faqsCollection.countDocuments();
+  if (existingFaqs === 0) {
+    const demoFaqs = [
+      { question: "Is Drop Safely only for female students?", answer: "Yes. Our initial launch is focused on female university and college students." },
+      { question: "Which universities are supported?", answer: "We are starting with selected universities and colleges in Lahore and expanding based on student demand." },
+      { question: "How much will it cost?", answer: "Pricing will depend on your area and route distance. Students who register will receive early pricing information." },
+      { question: "Can students from the same area travel together?", answer: "Yes. Our goal is to create shared routes for female students living in nearby areas." },
+      { question: "When will routes start?", answer: "Routes are activated based on the number of interested students in a specific area." },
+      { question: "Is my personal information safe?", answer: "Yes. Your details are kept private and only used to coordinate your route. We never share your information with third parties." },
+      { question: "Can my parents track my route?", answer: "Absolutely. Every ride includes live GPS tracking and automated alerts so your parents know exactly when you leave and arrive safely." },
+      { question: "What happens if I miss my ride?", answer: "Our drivers and coordinators work with fixed pickup times. If you miss a ride, contact our support team and we will arrange the next available pickup for you." },
+    ];
+    for (let i = 0; i < demoFaqs.length; i++) {
+      await faqsCollection.insertOne({
+        question: demoFaqs[i].question,
+        answer: demoFaqs[i].answer,
+        order: i,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+    console.log(`✅ ${demoFaqs.length} demo FAQs created`);
+  } else {
+    console.log(`ℹ️  FAQs already exist (${existingFaqs})`);
+  }
+
   } // end SEED_DEMO block
 
   console.log("\n🎉 Seed completed successfully!");

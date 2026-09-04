@@ -1,48 +1,80 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const faqs = [
+interface Faq {
+  _id: string;
+  question: string;
+  answer: string;
+  order: number;
+  isActive: boolean;
+}
+
+const DEFAULT_FAQS: Faq[] = [
   {
+    _id: "0",
     question: "Is Drop Safely only for female students?",
     answer:
       "Yes. Our initial launch is focused on female university and college students.",
+    order: 0,
+    isActive: true,
   },
   {
+    _id: "1",
     question: "Which universities are supported?",
     answer:
       "We are starting with selected universities and colleges in Lahore and expanding based on student demand.",
+    order: 1,
+    isActive: true,
   },
   {
+    _id: "2",
     question: "How much will it cost?",
     answer:
       "Pricing will depend on your area and route distance. Students who register will receive early pricing information.",
+    order: 2,
+    isActive: true,
   },
   {
+    _id: "3",
     question: "Can students from the same area travel together?",
     answer:
       "Yes. Our goal is to create shared routes for female students living in nearby areas.",
+    order: 3,
+    isActive: true,
   },
   {
+    _id: "4",
     question: "When will routes start?",
     answer:
       "Routes are activated based on the number of interested students in a specific area.",
+    order: 4,
+    isActive: true,
   },
   {
+    _id: "5",
     question: "Is my personal information safe?",
     answer:
       "Yes. Your details are kept private and only used to coordinate your route. We never share your information with third parties.",
+    order: 5,
+    isActive: true,
   },
   {
+    _id: "6",
     question: "Can my parents track my route?",
     answer:
       "Absolutely. Every ride includes live GPS tracking and automated alerts so your parents know exactly when you leave and arrive safely.",
+    order: 6,
+    isActive: true,
   },
   {
+    _id: "7",
     question: "What happens if I miss my ride?",
     answer:
       "Our drivers and coordinators work with fixed pickup times. If you miss a ride, contact our support team and we will arrange the next available pickup for you.",
+    order: 7,
+    isActive: true,
   },
 ];
 
@@ -119,6 +151,23 @@ function FAQItem({
 
 export default function FAQSection({ onRegisterOpen }: { onRegisterOpen?: () => void }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [faqs, setFaqs] = useState<Faq[]>(DEFAULT_FAQS);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/faqs")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.data?.length) setFaqs(data.data as Faq[]);
+      })
+      .catch(() => {
+        // Keep default FAQs on failure
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section id="faqs" className="relative overflow-hidden bg-[#0a0a0a] py-20 sm:py-28">

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Car, FileText, MapPin, ChevronRight, ChevronLeft, CheckCircle2 } from "lucide-react";
+import { User, Car, FileText, ChevronRight, ChevronLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -15,10 +15,8 @@ import { useToast } from "@/components/ui/Toast";
 import { stagger, fadeUp } from "@/lib/animations";
 
 const STEPS = [
-  { label: "Personal Info", icon: User },
-  { label: "Vehicle", icon: Car },
+  { label: "Basic Info", icon: User },
   { label: "Documents", icon: FileText },
-  { label: "Location", icon: MapPin },
 ];
 
 const VEHICLE_OPTIONS = [
@@ -32,6 +30,15 @@ const CITY_OPTIONS = [
   { value: "Okara", label: "Okara" },
 ];
 
+type DocField = "licenseFront" | "licenseBack" | "cnicFront" | "cnicBack";
+
+const DOC_SECTION: Record<DocField, { label: string; hint: string }> = {
+  licenseFront: { label: "Driving License — Front", hint: "Upload the front side of your license" },
+  licenseBack: { label: "Driving License — Back", hint: "Upload the back side of your license" },
+  cnicFront: { label: "CNIC — Front", hint: "Upload the front side of your CNIC" },
+  cnicBack: { label: "CNIC — Back", hint: "Upload the back side of your CNIC" },
+};
+
 export default function DriverRegisterPage() {
   const router = useRouter();
   const { user, token } = useAuth();
@@ -39,8 +46,10 @@ export default function DriverRegisterPage() {
 
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [uploadedLicense, setUploadedLicense] = useState<string>("");
-  const [uploadedVerification, setUploadedVerification] = useState<string>("");
+  const [uploadedLicenseFront, setUploadedLicenseFront] = useState<string>("");
+  const [uploadedLicenseBack, setUploadedLicenseBack] = useState<string>("");
+  const [uploadedCnicFront, setUploadedCnicFront] = useState<string>("");
+  const [uploadedCnicBack, setUploadedCnicBack] = useState<string>("");
   const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
@@ -63,34 +72,40 @@ export default function DriverRegisterPage() {
     });
   };
 
+  const formatCnic = (raw: string): string => {
+    const digits = raw.replace(/\D/g, "").slice(0, 13);
+    if (digits.length <= 5) return digits;
+    if (digits.length <= 12) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+    return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12)}`;
+  };
+
   const validateStep = (s: number): boolean => {
     const errs: Record<string, string> = {};
 
-    if (s === 0 && !form.name.trim()) errs.name = "Name is required";
-    if (s === 1) {
+    if (s === 0) {
+      if (!form.name.trim()) errs.name = "Name is required";
       if (!form.vehicleType) errs.vehicleType = "Select vehicle type";
       if (!form.vehicleCapacity || parseInt(form.vehicleCapacity) < 1)
         errs.vehicleCapacity = "Capacity must be at least 1";
       if (!form.vehicleRegNumber.trim())
         errs.vehicleRegNumber = "Registration number is required";
-    }
-    if (s === 2) {
-      if (!uploadedLicense) errs.license = "License photo is required";
-      if (!uploadedVerification)
-        errs.verification = "Police verification is required";
-    }
-    if (s === 3) {
       if (!form.cnic.trim()) errs.cnic = "CNIC is required";
       else if (!/^[0-9]{5}-[0-9]{7}-[0-9]{1}$/.test(form.cnic))
         errs.cnic = "Format: XXXXX-XXXXXXX-X";
       if (!form.city) errs.city = "Select a city";
+    }
+    if (s === 1) {
+      if (!uploadedLicenseFront) errs.licenseFront = "License front photo is required";
+      if (!uploadedLicenseBack) errs.licenseBack = "License back photo is required";
+      if (!uploadedCnicFront) errs.cnicFront = "CNIC front photo is required";
+      if (!uploadedCnicBack) errs.cnicBack = "CNIC back photo is required";
     }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleUpload = async (files: File[], field: "license" | "verification") => {
+  const handleUpload = async (files: File[], field: DocField) => {
     if (!files.length) return;
     setUploading(true);
     try {
@@ -108,8 +123,10 @@ export default function DriverRegisterPage() {
       const data = await res.json();
       const url = data.url || data.data?.url;
 
-      if (field === "license") setUploadedLicense(url);
-      else setUploadedVerification(url);
+      if (field === "licenseFront") setUploadedLicenseFront(url);
+      else if (field === "licenseBack") setUploadedLicenseBack(url);
+      else if (field === "cnicFront") setUploadedCnicFront(url);
+      else if (field === "cnicBack") setUploadedCnicBack(url);
 
       setErrors((prev) => {
         const copy = { ...prev };
@@ -126,7 +143,7 @@ export default function DriverRegisterPage() {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
+    if (!validateStep(1)) return;
     setSubmitting(true);
 
     try {
@@ -144,13 +161,20 @@ export default function DriverRegisterPage() {
           vehicleCapacity: parseInt(form.vehicleCapacity) || 1,
           vehicleRegNumber: form.vehicleRegNumber,
           city: form.city,
-          licenseUrl: uploadedLicense,
-          policeVerificationUrl: uploadedVerification,
+          licenseFrontUrl: uploadedLicenseFront,
+          licenseBackUrl: uploadedLicenseBack,
+          cnicFrontUrl: uploadedCnicFront,
+          cnicBackUrl: uploadedCnicBack,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Registration failed");
+      if (!res.ok) {
+        const fieldMsgs = Object.entries(data.details || {})
+          .flatMap(([, msgs]) => (Array.isArray(msgs) ? msgs : []))
+          .join(" · ");
+        throw new Error(fieldMsgs || data.error || "Registration failed");
+      }
 
       toast.success("Registration submitted! Pending admin approval.");
       router.push("/driver/dashboard");
@@ -225,7 +249,7 @@ export default function DriverRegisterPage() {
             transition={{ duration: 0.25 }}
           >
             <Card variant="elevated" padding="lg">
-              {/* Step 1: Personal Info */}
+              {/* Step 1: Basic Info */}
               {step === 0 && (
                 <div className="flex flex-col gap-5">
                   <Input
@@ -235,7 +259,7 @@ export default function DriverRegisterPage() {
                     value={form.name}
                     onChange={(e) => updateField("name", e.target.value)}
                     error={errors.name}
-                    leftIcon={<User size={15} />}
+                    leftIcon={<Car size={15} />}
                   />
                   <Input
                     label="Phone Number"
@@ -243,15 +267,6 @@ export default function DriverRegisterPage() {
                     value={user?.phone || ""}
                     type="tel"
                   />
-                  <p className="text-xs text-gray-500">
-                    Phone number is linked to your account and cannot be changed here.
-                  </p>
-                </div>
-              )}
-
-              {/* Step 2: Vehicle Details */}
-              {step === 1 && (
-                <div className="flex flex-col gap-5">
                   <Select
                     label="Vehicle Type"
                     required
@@ -261,81 +276,32 @@ export default function DriverRegisterPage() {
                     onChange={(e) => updateField("vehicleType", e.target.value)}
                     error={errors.vehicleType}
                   />
-                  <Input
-                    label="Vehicle Capacity (seats)"
-                    required
-                    type="number"
-                    placeholder="e.g. 14"
-                    value={form.vehicleCapacity}
-                    onChange={(e) => updateField("vehicleCapacity", e.target.value)}
-                    error={errors.vehicleCapacity}
-                  />
-                  <Input
-                    label="Vehicle Registration Number"
-                    required
-                    placeholder="e.g. LEA-2024-1234"
-                    value={form.vehicleRegNumber}
-                    onChange={(e) => updateField("vehicleRegNumber", e.target.value)}
-                    error={errors.vehicleRegNumber}
-                  />
-                </div>
-              )}
-
-              {/* Step 3: Documents */}
-              {step === 2 && (
-                <div className="flex flex-col gap-6">
-                  <div>
-                    <p className="text-sm font-medium text-gray-300 mb-2">
-                      Driving License Photo <span className="text-green-500">*</span>
-                    </p>
-                    <FileUpload
-                      accept="image/*"
-                      maxSize={5}
-                      label="Upload license photo"
-                      onUpload={(files) => handleUpload(files, "license")}
-                      error={errors.license}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Vehicle Capacity (seats)"
+                      required
+                      type="number"
+                      placeholder="e.g. 14"
+                      value={form.vehicleCapacity}
+                      onChange={(e) => updateField("vehicleCapacity", e.target.value)}
+                      error={errors.vehicleCapacity}
                     />
-                    {uploadedLicense && (
-                      <p className="text-xs text-green-400 mt-1">✓ License uploaded</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-gray-300 mb-2">
-                      Police Verification Photo <span className="text-green-500">*</span>
-                    </p>
-                    <FileUpload
-                      accept="image/*"
-                      maxSize={5}
-                      label="Upload verification document"
-                      onUpload={(files) => handleUpload(files, "verification")}
-                      error={errors.verification}
+                    <Input
+                      label="Vehicle Reg Number"
+                      required
+                      placeholder="e.g. LEA-2024"
+                      value={form.vehicleRegNumber}
+                      onChange={(e) => updateField("vehicleRegNumber", e.target.value)}
+                      error={errors.vehicleRegNumber}
                     />
-                    {uploadedVerification && (
-                      <p className="text-xs text-green-400 mt-1">✓ Verification uploaded</p>
-                    )}
                   </div>
-
-                  {uploading && (
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <Spinner size="sm" />
-                      Uploading...
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Step 4: Location */}
-              {step === 3 && (
-                <div className="flex flex-col gap-5">
                   <Input
                     label="CNIC Number"
                     required
                     placeholder="XXXXX-XXXXXXX-X"
                     value={form.cnic}
-                    onChange={(e) => updateField("cnic", e.target.value)}
+                    onChange={(e) => updateField("cnic", formatCnic(e.target.value))}
                     error={errors.cnic}
-                    leftIcon={<FileText size={15} />}
                   />
                   <Select
                     label="City"
@@ -349,6 +315,48 @@ export default function DriverRegisterPage() {
                   <p className="text-xs text-gray-500">
                     You will be assigned routes in your selected city once approved.
                   </p>
+                </div>
+              )}
+
+              {/* Step 2: Documents */}
+              {step === 1 && (
+                <div className="flex flex-col gap-6">
+                  <p className="text-sm text-gray-400">
+                    Please upload clear photos of both sides of your license and CNIC.
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {(Object.keys(DOC_SECTION) as DocField[]).map((field) => {
+                      const isUploaded =
+                        (field === "licenseFront" && uploadedLicenseFront) ||
+                        (field === "licenseBack" && uploadedLicenseBack) ||
+                        (field === "cnicFront" && uploadedCnicFront) ||
+                        (field === "cnicBack" && uploadedCnicBack);
+                      return (
+                        <div key={field}>
+                          <p className="text-sm font-medium text-gray-300 mb-2">
+                            {DOC_SECTION[field].label} <span className="text-green-500">*</span>
+                          </p>
+                          <FileUpload
+                            accept="image/*"
+                            maxSize={5}
+                            label={DOC_SECTION[field].hint}
+                            onUpload={(files) => handleUpload(files, field)}
+                            error={errors[field]}
+                          />
+                          {isUploaded && (
+                            <p className="text-xs text-green-400 mt-1">✓ Uploaded</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {uploading && (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Spinner size="sm" />
+                      Uploading...
+                    </div>
+                  )}
                 </div>
               )}
             </Card>

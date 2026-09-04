@@ -40,7 +40,16 @@ const driverSchema = new Schema<IDriver>(
     licenseUrl: {
       type: String,
     },
-    policeVerificationUrl: {
+    licenseFrontUrl: {
+      type: String,
+    },
+    licenseBackUrl: {
+      type: String,
+    },
+    cnicFrontUrl: {
+      type: String,
+    },
+    cnicBackUrl: {
       type: String,
     },
     isApproved: {

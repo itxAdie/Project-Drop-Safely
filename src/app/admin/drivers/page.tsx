@@ -57,8 +57,10 @@ export default function DriversPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadedLicense, setUploadedLicense] = useState("");
-  const [uploadedVerification, setUploadedVerification] = useState("");
+  const [uploadedLicenseFront, setUploadedLicenseFront] = useState("");
+  const [uploadedLicenseBack, setUploadedLicenseBack] = useState("");
+  const [uploadedCnicFront, setUploadedCnicFront] = useState("");
+  const [uploadedCnicBack, setUploadedCnicBack] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -144,6 +146,13 @@ export default function DriversPage() {
     });
   };
 
+  const formatCnic = (raw: string): string => {
+    const digits = raw.replace(/\D/g, "").slice(0, 13);
+    if (digits.length <= 5) return digits;
+    if (digits.length <= 12) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+    return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12)}`;
+  };
+
   const validateForm = (): boolean => {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = "Name is required";
@@ -157,13 +166,18 @@ export default function DriversPage() {
     if (!form.vehicleRegNumber.trim())
       errs.vehicleRegNumber = "Registration number is required";
     if (!form.city) errs.city = "Select a city";
-    if (!uploadedLicense) errs.license = "License photo is required";
-    if (!uploadedVerification) errs.verification = "Police verification is required";
+    if (!uploadedLicenseFront) errs.licenseFront = "License front photo is required";
+    if (!uploadedLicenseBack) errs.licenseBack = "License back photo is required";
+    if (!uploadedCnicFront) errs.cnicFront = "CNIC front photo is required";
+    if (!uploadedCnicBack) errs.cnicBack = "CNIC back photo is required";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleUpload = async (files: File[], field: "license" | "verification") => {
+  const handleUpload = async (
+    files: File[],
+    field: "licenseFront" | "licenseBack" | "cnicFront" | "cnicBack",
+  ) => {
     if (!files.length) return;
     setUploading(true);
     try {
@@ -181,8 +195,10 @@ export default function DriversPage() {
       const data = await res.json();
       const url = data.url || data.data?.url;
 
-      if (field === "license") setUploadedLicense(url);
-      else setUploadedVerification(url);
+      if (field === "licenseFront") setUploadedLicenseFront(url);
+      else if (field === "licenseBack") setUploadedLicenseBack(url);
+      else if (field === "cnicFront") setUploadedCnicFront(url);
+      else if (field === "cnicBack") setUploadedCnicBack(url);
 
       setErrors((prev) => {
         const copy = { ...prev };
@@ -201,8 +217,10 @@ export default function DriversPage() {
   const openModal = () => {
     setForm(EMPTY_FORM);
     setErrors({});
-    setUploadedLicense("");
-    setUploadedVerification("");
+    setUploadedLicenseFront("");
+    setUploadedLicenseBack("");
+    setUploadedCnicFront("");
+    setUploadedCnicBack("");
     setModalOpen(true);
   };
 
@@ -229,8 +247,10 @@ export default function DriversPage() {
           vehicleCapacity: parseInt(form.vehicleCapacity) || 1,
           vehicleRegNumber: form.vehicleRegNumber,
           city: form.city,
-          licenseUrl: uploadedLicense,
-          policeVerificationUrl: uploadedVerification,
+          licenseFrontUrl: uploadedLicenseFront,
+          licenseBackUrl: uploadedLicenseBack,
+          cnicFrontUrl: uploadedCnicFront,
+          cnicBackUrl: uploadedCnicBack,
         }),
       });
 
@@ -258,7 +278,7 @@ export default function DriversPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-100">Drivers</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage drivers and verification queue</p>
+          <p className="text-sm text-gray-500 mt-1">Manage drivers and document uploads</p>
         </div>
         <Button
           variant="primary"
@@ -371,7 +391,7 @@ export default function DriversPage() {
             required
             placeholder="XXXXX-XXXXXXX-X"
             value={form.cnic}
-            onChange={(e) => updateField("cnic", e.target.value)}
+            onChange={(e) => updateField("cnic", formatCnic(e.target.value))}
             error={errors.cnic}
             leftIcon={<FileText size={15} />}
             wrapperClassName="sm:col-span-2"
@@ -418,33 +438,65 @@ export default function DriversPage() {
           {/* Documents */}
           <div className="sm:col-span-2">
             <p className="text-sm font-medium text-gray-300 mb-2">
-              Driving License Photo <span className="text-green-500">*</span>
+              Driving License — Front <span className="text-green-500">*</span>
             </p>
             <FileUpload
               accept="image/*"
               maxSize={5}
-              label="Upload license photo"
-              onUpload={(files) => handleUpload(files, "license")}
-              error={errors.license}
+              label="Upload license front photo"
+              onUpload={(files) => handleUpload(files, "licenseFront")}
+              error={errors.licenseFront}
             />
-            {uploadedLicense && (
-              <p className="text-xs text-green-400 mt-1">✓ License uploaded</p>
+            {uploadedLicenseFront && (
+              <p className="text-xs text-green-400 mt-1">✓ Uploaded</p>
             )}
           </div>
 
           <div className="sm:col-span-2">
             <p className="text-sm font-medium text-gray-300 mb-2">
-              Police Verification Photo <span className="text-green-500">*</span>
+              Driving License — Back <span className="text-green-500">*</span>
             </p>
             <FileUpload
               accept="image/*"
               maxSize={5}
-              label="Upload verification document"
-              onUpload={(files) => handleUpload(files, "verification")}
-              error={errors.verification}
+              label="Upload license back photo"
+              onUpload={(files) => handleUpload(files, "licenseBack")}
+              error={errors.licenseBack}
             />
-            {uploadedVerification && (
-              <p className="text-xs text-green-400 mt-1">✓ Verification uploaded</p>
+            {uploadedLicenseBack && (
+              <p className="text-xs text-green-400 mt-1">✓ Uploaded</p>
+            )}
+          </div>
+
+          <div className="sm:col-span-2">
+            <p className="text-sm font-medium text-gray-300 mb-2">
+              CNIC — Front <span className="text-green-500">*</span>
+            </p>
+            <FileUpload
+              accept="image/*"
+              maxSize={5}
+              label="Upload CNIC front photo"
+              onUpload={(files) => handleUpload(files, "cnicFront")}
+              error={errors.cnicFront}
+            />
+            {uploadedCnicFront && (
+              <p className="text-xs text-green-400 mt-1">✓ Uploaded</p>
+            )}
+          </div>
+
+          <div className="sm:col-span-2">
+            <p className="text-sm font-medium text-gray-300 mb-2">
+              CNIC — Back <span className="text-green-500">*</span>
+            </p>
+            <FileUpload
+              accept="image/*"
+              maxSize={5}
+              label="Upload CNIC back photo"
+              onUpload={(files) => handleUpload(files, "cnicBack")}
+              error={errors.cnicBack}
+            />
+            {uploadedCnicBack && (
+              <p className="text-xs text-green-400 mt-1">✓ Uploaded</p>
             )}
           </div>
 

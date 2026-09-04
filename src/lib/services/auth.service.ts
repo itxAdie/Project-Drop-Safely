@@ -11,6 +11,7 @@ import type { AuthTokens, AuthUser } from "@/types/api";
 import type { IAuthService } from "./interfaces";
 import type { UserRole } from "@/types/enums";
 import { otpService } from "./otp.service";
+import { normalizePhone } from "@/lib/utils/phone";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -24,14 +25,6 @@ function getRefreshSecret(): Uint8Array {
 
 const ACCESS_EXPIRY = process.env.JWT_EXPIRY || "1h";
 const REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || "7d";
-
-function normalizePhone(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\(\)]/g, "");
-  if (cleaned.startsWith("+92")) {
-    cleaned = "0" + cleaned.slice(3);
-  }
-  return cleaned;
-}
 
 // ── Token generation ───────────────────────────────────────────────────────
 
@@ -97,12 +90,23 @@ class AuthService implements IAuthService {
 
     if (!user) {
       isNewUser = true;
-      user = await User.create({
-        phone: normalized,
-        role: "student" as UserRole, // provisional — user picks role on /register
-        isVerified: true,
-        isActive: true,
-      });
+      try {
+        user = await User.create({
+          phone: normalized,
+          role: "student" as UserRole, // provisional — user picks role on /register
+          isVerified: true,
+          isActive: true,
+        });
+      } catch (err) {
+        // Unique index on phone: another request created this account first → reuse it
+        if ((err as { code?: number }).code === 11000) {
+          user = await User.findOne({ phone: normalized });
+          if (!user) throw err;
+          isNewUser = false;
+        } else {
+          throw err;
+        }
+      }
     } else {
       user.isVerified = true;
       user.lastLoginAt = new Date();

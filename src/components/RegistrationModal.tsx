@@ -9,12 +9,28 @@ import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { TimePicker } from "./ui/TimePicker";
 import { Spinner } from "./ui/Spinner";
+import { FileUpload } from "./ui/FileUpload";
 import { LocationPicker } from "@/components/maps/LocationPicker";
 import { useToast } from "./ui/Toast";
 import { useAuth } from "@/hooks/useAuth";
 
 type Role = "student" | "driver";
-type Step = "role" | "phone" | "otp" | "profile" | "done";
+type Step = "role" | "phone" | "otp" | "profile" | "documents" | "done";
+type DocField = "licenseFront" | "licenseBack" | "cnicFront" | "cnicBack";
+
+const DOC_LABELS: Record<DocField, string> = {
+  licenseFront: "Driving License — Front",
+  licenseBack: "Driving License — Back",
+  cnicFront: "CNIC — Front",
+  cnicBack: "CNIC — Back",
+};
+
+const DOC_HINTS: Record<DocField, string> = {
+  licenseFront: "Upload the front side of your license",
+  licenseBack: "Upload the back side of your license",
+  cnicFront: "Upload the front side of your CNIC",
+  cnicBack: "Upload the back side of your CNIC",
+};
 
 const CITY_OPTIONS = [
   { value: "Lahore", label: "Lahore" },
@@ -22,10 +38,9 @@ const CITY_OPTIONS = [
 ];
 
 const VEHICLE_OPTIONS = [
-  { value: "van", label: "Van (AC/Non-AC)" },
-  { value: "mini_bus", label: "Mini Bus" },
-  { value: "bus", label: "Bus" },
-  { value: "car", label: "Car" },
+  { value: "ac_van", label: "AC-Van" },
+  { value: "non_ac_van", label: "Non-AC Van" },
+  { value: "mini_bus", label: "Mini-Bus" },
 ];
 
 const OFF_DAYS = [
@@ -115,9 +130,20 @@ export default function RegistrationModal({
   const [capacity, setCapacity] = useState("");
   const [regNumber, setRegNumber] = useState("");
   const [dCity, setDCity] = useState("");
+  const [uploadedLicenseFront, setUploadedLicenseFront] = useState("");
+  const [uploadedLicenseBack, setUploadedLicenseBack] = useState("");
+  const [uploadedCnicFront, setUploadedCnicFront] = useState("");
+  const [uploadedCnicBack, setUploadedCnicBack] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [profileError, setProfileError] = useState("");
+
+  const formatCnic = (raw: string): string => {
+    const digits = raw.replace(/\D/g, "").slice(0, 13);
+    if (digits.length <= 5) return digits;
+    if (digits.length <= 12) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+    return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12)}`;
+  };
 
   // ── Body scroll lock while open ─────────────────────────────────────────
   useEffect(() => {
@@ -149,6 +175,16 @@ export default function RegistrationModal({
     setSName("");
     setParentPhone("");
     setSInstitute("");
+    setDName("");
+    setCnic("");
+    setVehicleType("");
+    setCapacity("");
+    setRegNumber("");
+    setDCity("");
+    setUploadedLicenseFront("");
+    setUploadedLicenseBack("");
+    setUploadedCnicFront("");
+    setUploadedCnicBack("");
   };
 
   const handleClose = useCallback(() => {
@@ -313,6 +349,34 @@ export default function RegistrationModal({
     setOffDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
   };
 
+  const handleUpload = async (files: File[], field: DocField) => {
+    if (!files.length) return;
+    setProfileError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", files[0]);
+      formData.append("folder", `drivers/${field}`);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      const url = data.url || data.data?.url;
+
+      if (field === "licenseFront") setUploadedLicenseFront(url);
+      else if (field === "licenseBack") setUploadedLicenseBack(url);
+      else if (field === "cnicFront") setUploadedCnicFront(url);
+      else if (field === "cnicBack") setUploadedCnicBack(url);
+      toast.success("File uploaded successfully");
+    } catch {
+      toast.error("Upload failed. Please try again.");
+    }
+  };
+
   // ── Profile submission ───────────────────────────────────────────────────
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -355,16 +419,8 @@ export default function RegistrationModal({
         setProfileError("CNIC format must be XXXXX-XXXXXXX-X");
         return;
       }
-      url = "/api/drivers";
-      body = {
-        name: dName,
-        phone,
-        cnic,
-        vehicleType,
-        vehicleCapacity: parseInt(capacity) || 1,
-        vehicleRegNumber: regNumber,
-        city: dCity,
-      };
+      setStep("documents");
+      return;
     }
 
     setSubmitting(true);
@@ -378,14 +434,61 @@ export default function RegistrationModal({
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Registration failed");
-      if (role === "student") {
-        resetAll();
-        onClose();
-        router.push("/student/deposit");
-      } else {
-        setStep("done");
+      if (!res.ok) {
+        const fieldMsgs = Object.entries(data.details || {})
+          .flatMap(([, msgs]) => (Array.isArray(msgs) ? msgs : []))
+          .join(" · ");
+        throw new Error(fieldMsgs || data.error || "Registration failed");
       }
+      resetAll();
+      onClose();
+      router.push("/student/deposit");
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDriverSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileError("");
+
+    if (!uploadedLicenseFront || !uploadedLicenseBack || !uploadedCnicFront || !uploadedCnicBack) {
+      setProfileError("Please upload both sides of the driving license and both sides of the CNIC.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/drivers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name: dName,
+          phone,
+          cnic,
+          vehicleType,
+          vehicleCapacity: parseInt(capacity) || 1,
+          vehicleRegNumber: regNumber,
+          city: dCity,
+          licenseFrontUrl: uploadedLicenseFront,
+          licenseBackUrl: uploadedLicenseBack,
+          cnicFrontUrl: uploadedCnicFront,
+          cnicBackUrl: uploadedCnicBack,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const fieldMsgs = Object.entries(data.details || {})
+          .flatMap(([, msgs]) => (Array.isArray(msgs) ? msgs : []))
+          .join(" · ");
+        throw new Error(fieldMsgs || data.error || "Registration failed");
+      }
+      setStep("done");
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -756,7 +859,7 @@ export default function RegistrationModal({
                             label="CNIC (National ID)"
                             placeholder="XXXXX-XXXXXXX-X"
                             value={cnic}
-                            onChange={(e) => setCnic(e.target.value)}
+                            onChange={(e) => setCnic(formatCnic(e.target.value))}
                             required
                           />
                           <Select
@@ -809,13 +912,88 @@ export default function RegistrationModal({
                       className="mt-6"
                       isLoading={submitting}
                     >
-                      {role === "student" ? "Complete Student Registration" : "Submit Driver Registration"}
+                      {role === "student" ? "Complete Student Registration" : "Next: Documents"}
                     </Button>
                     <p className="mt-3 text-center text-[11px] text-gray-600">
                       {role === "student"
                         ? "Student registrations are active immediately."
                         : "Driver registrations are reviewed &amp; approved by our team."}
                     </p>
+                  </motion.form>
+                )}
+
+                {/* ── DOCUMENTS STEP (driver only) ──────────── */}
+                {step === "documents" && (
+                  <motion.form
+                    key="documents"
+                    onSubmit={handleDriverSubmit}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="px-6 pb-8 pt-8 sm:px-8"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setStep("profile")}
+                      className="mb-4 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-white"
+                    >
+                      <ArrowLeft size={14} /> Back
+                    </button>
+                    <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                      <span className="text-[10px] font-semibold tracking-wide text-green-500 uppercase">
+                        Documents
+                      </span>
+                    </div>
+                    <h2 className="font-display text-2xl font-bold text-white">
+                      Upload your documents
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-400">
+                      Upload clear photos of both sides of your license and CNIC.
+                    </p>
+                    <div className="mt-6 space-y-4">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {(["licenseFront", "licenseBack", "cnicFront", "cnicBack"] as DocField[]).map((field) => {
+                          const isUploaded =
+                            (field === "licenseFront" && uploadedLicenseFront) ||
+                            (field === "licenseBack" && uploadedLicenseBack) ||
+                            (field === "cnicFront" && uploadedCnicFront) ||
+                            (field === "cnicBack" && uploadedCnicBack);
+                          return (
+                            <div key={field}>
+                              <p className="mb-2 text-sm font-medium text-gray-300">
+                                {DOC_LABELS[field]} <span className="text-green-500">*</span>
+                              </p>
+                              <FileUpload
+                                accept="image/*"
+                                maxSize={5}
+                                label={DOC_HINTS[field]}
+                                onUpload={(files) => handleUpload(files, field)}
+                              />
+                              {isUploaded && (
+                                <p className="mt-1 text-xs text-green-400">✓ Uploaded</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {profileError && (
+                      <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                        {profileError}
+                      </p>
+                    )}
+
+                    <Button
+                      type="submit"
+                      fullWidth
+                      size="lg"
+                      className="mt-6"
+                      isLoading={submitting}
+                    >
+                      Submit Driver Registration
+                    </Button>
                   </motion.form>
                 )}
 

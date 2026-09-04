@@ -11,6 +11,7 @@ const sidebarItems = [
   { href: "/admin/routes", label: "Routes", icon: "🗺️" },
   { href: "/admin/payments", label: "Payments", icon: "💰" },
   { href: "/admin/cities", label: "Cities & Zones", icon: "🏙️" },
+  { href: "/admin/faqs", label: "FAQs", icon: "❓" },
   { href: "/admin/settings", label: "Settings", icon: "⚙️" },
 ];
 

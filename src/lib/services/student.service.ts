@@ -5,6 +5,8 @@ import { NotFoundError, ConflictError, ValidationError, ForbiddenError } from "@
 import { CLUSTER_RADIUS_KM, MIN_STUDENTS_PER_ROUTE, DEPOSIT_AMOUNT } from "@/lib/constants";
 import type { IStudent, IRoute } from "@/types";
 import type { IStudentService } from "./interfaces";
+import { normalizePhone } from "@/lib/utils/phone";
+import type { UserRole } from "@/types/enums";
 
 const studentRepo = new StudentRepository();
 
@@ -24,8 +26,10 @@ export class StudentService implements IStudentService {
   }): Promise<IStudent> {
     await connectDB();
 
+    const normalizedPhone = normalizePhone(data.phone);
+
     // Find or create user
-    const user = await User.findOne({ phone: data.phone }).lean().exec();
+    const user = await User.findOne({ phone: normalizedPhone }).lean().exec();
     if (!user) {
       // User should already exist from auth flow — but handle gracefully
       throw new NotFoundError("User not found. Please login first.");
@@ -37,10 +41,10 @@ export class StudentService implements IStudentService {
       throw new ConflictError("Student profile already exists for this user");
     }
 
-    const student = await Student.create({
+const student = await Student.create({
       userId: user._id,
       name: data.name,
-      phone: data.phone,
+      phone: normalizedPhone,
       parentPhone: data.parentPhone,
       pickupLocation: {
         type: "Point",
@@ -56,6 +60,12 @@ export class StudentService implements IStudentService {
       status: "pending",
       paymentStatus: "pending",
     });
+
+    // One phone = one account. Claim the student role.
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { role: "student" as UserRole, isVerified: true, isActive: true } },
+    );
 
     return student.toObject() as unknown as IStudent;
   }

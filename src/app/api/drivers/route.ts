@@ -53,7 +53,10 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       ...parsed.data,
       userId: request.user.id,
       licenseUrl: body.licenseUrl,
-      policeVerificationUrl: body.policeVerificationUrl,
+      licenseFrontUrl: body.licenseFrontUrl,
+      licenseBackUrl: body.licenseBackUrl,
+      cnicFrontUrl: body.cnicFrontUrl,
+      cnicBackUrl: body.cnicBackUrl,
     });
 
     return NextResponse.json(

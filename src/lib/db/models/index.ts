@@ -11,3 +11,4 @@ export { Notification } from "./notification.model";
 export { Otp } from "./otp.model";
 export { GpsLocation } from "./gps-location.model";
 export { Settings } from "./settings.model";
+export { Faq } from "./faq.model";

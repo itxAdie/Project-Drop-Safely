@@ -26,7 +26,10 @@ export const POST = withAuth(
       const driver = await driverService.createDriverByAdmin({
         ...parsed.data,
         licenseUrl: body.licenseUrl,
-        policeVerificationUrl: body.policeVerificationUrl,
+        licenseFrontUrl: body.licenseFrontUrl,
+        licenseBackUrl: body.licenseBackUrl,
+        cnicFrontUrl: body.cnicFrontUrl,
+        cnicBackUrl: body.cnicBackUrl,
       });
 
       return NextResponse.json({ success: true, data: driver }, { status: 201 });

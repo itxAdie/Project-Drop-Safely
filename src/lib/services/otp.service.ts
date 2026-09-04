@@ -7,6 +7,7 @@ import {
   OTP_LENGTH,
 } from "@/lib/constants";
 import type { IOtpService } from "./interfaces";
+import { normalizePhone } from "@/lib/utils/phone";
 
 const OTP_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const OTP_RATE_LIMIT_MAX = 3;
@@ -14,14 +15,6 @@ const OTP_RATE_LIMIT_MAX = 3;
 function generateOtpCode(): string {
   const code = Math.floor(100000 + Math.random() * 900000);
   return code.toString().padStart(OTP_LENGTH, "0");
-}
-
-function normalizePhone(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\(\)]/g, "");
-  if (cleaned.startsWith("+92")) {
-    cleaned = "0" + cleaned.slice(3);
-  }
-  return cleaned;
 }
 
 class OtpService implements IOtpService {

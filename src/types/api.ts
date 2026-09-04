@@ -95,7 +95,10 @@ export interface UpdateDriverRequest {
   vehicleCapacity?: number;
   vehicleRegNumber?: string;
   licenseUrl?: string;
-  policeVerificationUrl?: string;
+  licenseFrontUrl?: string;
+  licenseBackUrl?: string;
+  cnicFrontUrl?: string;
+  cnicBackUrl?: string;
 }
 
 // ===== Route =====

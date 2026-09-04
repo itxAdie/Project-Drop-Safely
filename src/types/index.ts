@@ -122,7 +122,10 @@ export interface IDriver {
   vehicleCapacity: number;
   vehicleRegNumber: string;
   licenseUrl?: string;
-  policeVerificationUrl?: string;
+  licenseFrontUrl?: string;
+  licenseBackUrl?: string;
+  cnicFrontUrl?: string;
+  cnicBackUrl?: string;
   isApproved: boolean;
   assignedRouteIds: Types.ObjectId[];
   city: string;
@@ -293,6 +296,17 @@ export interface ISettings {
   defaultCommissionPercent: number;
   defaultPlatformFee: number;
   paymentReminderDaysBefore: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ===== FAQ =====
+export interface IFaq {
+  _id: Types.ObjectId;
+  question: string;
+  answer: string;
+  order: number;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

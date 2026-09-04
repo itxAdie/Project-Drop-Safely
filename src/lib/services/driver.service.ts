@@ -7,16 +7,9 @@ import type { IDriverService } from "./interfaces";
 import type { IDriver, ITrip } from "@/types";
 import type { UserRole } from "@/types/enums";
 import mongoose from "mongoose";
+import { normalizePhone } from "@/lib/utils/phone";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-function normalizePhone(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\(\)]/g, "");
-  if (cleaned.startsWith("+92")) {
-    cleaned = "0" + cleaned.slice(3);
-  }
-  return cleaned;
-}
 
 function startOfDay(d = new Date()): Date {
   const t = new Date(d);
@@ -67,7 +60,10 @@ export class DriverService implements IDriverService {
     city: string;
     userId: string;
     licenseUrl?: string;
-    policeVerificationUrl?: string;
+    licenseFrontUrl?: string;
+    licenseBackUrl?: string;
+    cnicFrontUrl?: string;
+    cnicBackUrl?: string;
   }): Promise<IDriver> {
     await connectDB();
 
@@ -87,11 +83,21 @@ export class DriverService implements IDriverService {
       vehicleRegNumber: data.vehicleRegNumber,
       city: data.city,
       licenseUrl: data.licenseUrl || undefined,
-      policeVerificationUrl: data.policeVerificationUrl || undefined,
+      licenseFrontUrl: data.licenseFrontUrl || undefined,
+      licenseBackUrl: data.licenseBackUrl || undefined,
+      cnicFrontUrl: data.cnicFrontUrl || undefined,
+      cnicBackUrl: data.cnicBackUrl || undefined,
       isApproved: false,
       status: "pending",
       assignedRouteIds: [],
     });
+
+    // One phone = one account. Claim the driver role so this number can't
+    // double as a student account.
+    await User.updateOne(
+      { _id: new mongoose.Types.ObjectId(data.userId) },
+      { $set: { role: "driver" as UserRole, isVerified: true, isActive: true } },
+    );
 
     return driver.toObject() as IDriver;
   }
@@ -111,7 +117,10 @@ export class DriverService implements IDriverService {
     vehicleRegNumber: string;
     city: string;
     licenseUrl?: string;
-    policeVerificationUrl?: string;
+    licenseFrontUrl?: string;
+    licenseBackUrl?: string;
+    cnicFrontUrl?: string;
+    cnicBackUrl?: string;
   }): Promise<IDriver> {
     await connectDB();
 
@@ -155,7 +164,10 @@ export class DriverService implements IDriverService {
       vehicleRegNumber: data.vehicleRegNumber,
       city: data.city,
       licenseUrl: data.licenseUrl || undefined,
-      policeVerificationUrl: data.policeVerificationUrl || undefined,
+      licenseFrontUrl: data.licenseFrontUrl || undefined,
+      licenseBackUrl: data.licenseBackUrl || undefined,
+      cnicFrontUrl: data.cnicFrontUrl || undefined,
+      cnicBackUrl: data.cnicBackUrl || undefined,
       isApproved: true,
       status: "approved",
       assignedRouteIds: [],
@@ -227,7 +239,8 @@ export class DriverService implements IDriverService {
     await connectDB();
     const allowed: (keyof IDriver)[] = [
       "name", "vehicleType", "vehicleCapacity", "vehicleRegNumber",
-      "licenseUrl", "policeVerificationUrl",
+      "licenseUrl", "licenseFrontUrl", "licenseBackUrl",
+      "cnicFrontUrl", "cnicBackUrl",
     ];
     const update: Record<string, unknown> = {};
     for (const key of allowed) {

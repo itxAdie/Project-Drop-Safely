@@ -50,7 +50,7 @@ const userSchema = new Schema<IUser>(
   },
 );
 
-userSchema.index({ phone: 1 });
+userSchema.index({ phone: 1 }, { unique: true });
 userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ role: 1 });
 
