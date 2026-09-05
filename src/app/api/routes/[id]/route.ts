@@ -21,7 +21,7 @@ export const GET = withAuth(
       const p = await context.params;
       const id = p.id as string;
 
-      const route = await routeRepo.findById(id);
+      const route = await routeRepo.findById(id, "vans.driverId");
       if (!route) {
         throw new NotFoundError("Route");
       }

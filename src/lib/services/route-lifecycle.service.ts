@@ -41,6 +41,17 @@ export class RouteLifecycleService implements IRouteLifecycleService {
       );
     }
 
+    // Order candidate students by registration time (oldest first) so limited
+    // capacity is allocated fairly — students who have waited the longest get a
+    // seat first (first come, first served).
+    const orderedStudents = (await Student.find({
+      _id: { $in: candidate.studentIds },
+    })
+      .sort({ createdAt: 1, _id: 1 })
+      .lean()
+      .exec()) as unknown as Array<{ _id: unknown; createdAt?: Date }>;
+    const allStudentIds = orderedStudents.map((s) => s._id);
+
     // Build van assignment if driver is provided
     const vans: Array<{
       driverId: unknown;
@@ -49,14 +60,25 @@ export class RouteLifecycleService implements IRouteLifecycleService {
       pickupSequence: GeoPoint[];
     }> = [];
 
+    // The driver's capacity is the hard maximum: only the oldest
+    // `vehicleCapacity` students get a seat on this route. The rest keep
+    // `assignedRouteId: null` and stay in the waiting pool, where the next
+    // clustering run picks them up again.
+    let assignedStudentIds = allStudentIds;
+    let status: "active" | "candidate" = "candidate";
+
     if (driverId) {
       const driver = await driverRepo.findById(driverId);
       if (!driver) {
         throw new NotFoundError("Driver");
       }
+
+      assignedStudentIds = allStudentIds.slice(0, driver.vehicleCapacity);
+      status = "active";
+
       vans.push({
         driverId: driver._id,
-        studentIds: candidate.studentIds,
+        studentIds: assignedStudentIds,
         capacity: driver.vehicleCapacity,
         pickupSequence: candidate.suggestedSequence,
       });
@@ -71,16 +93,16 @@ export class RouteLifecycleService implements IRouteLifecycleService {
       radiusKm: 3,
       timeSlots: [candidate.timeSlot],
       vans,
-      totalStudents: candidate.studentIds.length,
+      totalStudents: assignedStudentIds.length,
       minStudents: 7,
-      status: driverId ? "active" : "candidate",
+      status,
     });
 
     const routeObj = route.toObject() as unknown as IRoute;
 
-    // Update all students: assign route, set status to active
+    // Update only the students who fit on the route: assign route, set active
     await Student.updateMany(
-      { _id: { $in: candidate.studentIds } },
+      { _id: { $in: assignedStudentIds } },
       {
         $set: {
           assignedRouteId: routeObj._id,
@@ -117,11 +139,33 @@ export class RouteLifecycleService implements IRouteLifecycleService {
 
     const idx = vanIndex ?? 0;
 
+    // Capacity is the hard maximum: refuse to put a driver on a van that
+    // already holds more students than the driver's vehicle can carry. Assign
+    // a driver with a larger vehicle first, or shed students manually.
+    if (idx < route.vans.length) {
+      const studentsOnVan = route.vans[idx].studentIds?.length ?? 0;
+      if (studentsOnVan > driver.vehicleCapacity) {
+        throw new ValidationError(
+          `Driver capacity (${driver.vehicleCapacity}) is less than the ${studentsOnVan} students already on van #${idx + 1}. Assign a driver with a larger vehicle first.`,
+        );
+      }
+    }
+
     if (idx >= route.vans.length) {
-      // Create a new van assignment
+      // Create a new van assignment. Backfill it with the seat-holders already
+      // assigned to this route (oldest registered first) so the driver's van
+      // reflects reality, capped at the driver's capacity — the rest of the
+      // route's students keep their route assignment for follow-up vans.
+      const routeStudents = (await Student.find({
+        assignedRouteId: route._id,
+        status: "active",
+      })
+        .sort({ createdAt: 1, _id: 1 })
+        .lean()
+        .exec()) as unknown as Array<{ _id: unknown }>;
       const newVan = {
         driverId: driver._id,
-        studentIds: [] as unknown[],
+        studentIds: routeStudents.map((s) => s._id).slice(0, driver.vehicleCapacity),
         capacity: driver.vehicleCapacity,
         pickupSequence: [] as GeoPoint[],
       };

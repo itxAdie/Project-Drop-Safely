@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import useSWR, { mutate } from "swr";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -8,10 +8,17 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
 import { pageTransition } from "@/lib/animations";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, MapPin, Users, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, Users, Clock, Car, AlertTriangle } from "lucide-react";
+
+interface VanRow {
+  driverId?: string | { _id: string; name: string; phone: string };
+  studentIds: string[];
+  capacity: number;
+}
 
 interface RouteDetail {
   _id: string;
@@ -23,12 +30,20 @@ interface RouteDetail {
   radiusKm: number;
   institutes: string[];
   timeSlots: string[];
-  vans: Array<{
-    driverId?: { _id: string; name: string; phone: string };
-    studentIds: string[];
-    capacity: number;
-  }>;
+  vans: VanRow[];
   createdAt: string;
+}
+
+interface DriverRow {
+  _id: string;
+  name: string;
+  phone: string;
+  vehicleCapacity: number;
+}
+
+function stringId(id: string | { _id: string } | null | undefined): string {
+  if (!id) return "";
+  return typeof id === "string" ? id : id._id;
 }
 
 export default function RouteDetailPage() {
@@ -39,9 +54,27 @@ export default function RouteDetailPage() {
   const id = params.id as string;
 
   const { data, isLoading } = useSWR<{ data: RouteDetail }>(`/api/routes/${id}`);
+  const { data: driversData } = useSWR<{ data: DriverRow[] }>(
+    "/api/drivers?isApproved=true&pageSize=100",
+  );
+  const drivers = useMemo(() => driversData?.data || [], [driversData]);
+
   const [actionLoading, setActionLoading] = useState(false);
+  const [assignLoading, setAssignLoading] = useState<number | null>(null);
+  const [selectedDrivers, setSelectedDrivers] = useState<Record<number, string>>({});
 
   const route = data?.data;
+
+  const driversById = useMemo(() => {
+    const map: Record<string, DriverRow> = {};
+    for (const d of drivers) map[d._id] = d;
+    return map;
+  }, [drivers]);
+
+  const driverOptions = useMemo(
+    () => drivers.map((d) => ({ value: d._id, label: `${d.name} (${d.phone}) — seats ${d.vehicleCapacity}` })),
+    [drivers],
+  );
 
   const handleToggleStatus = async () => {
     if (!route) return;
@@ -62,6 +95,36 @@ export default function RouteDetailPage() {
       setActionLoading(false);
     }
   };
+
+  const handleAssignDriver = async (vanIndex: number, driverId: string) => {
+    if (!driverId) {
+      toast.warning("Select a driver first");
+      return;
+    }
+    setAssignLoading(vanIndex);
+    try {
+      const res = await fetch(`/api/routes/${id}/assign-driver`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ driverId, vanIndex }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error || "Failed to assign driver");
+      setSelectedDrivers((prev) => ({ ...prev, [vanIndex]: "" }));
+      mutate(`/api/routes/${id}`);
+      toast.success("Driver assigned");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to assign driver");
+    } finally {
+      setAssignLoading(null);
+    }
+  };
+
+  const vanTargets: Array<{ van?: VanRow; idx: number }> = route
+    ? route.vans.length > 0
+      ? route.vans.map((van, idx) => ({ van, idx }))
+      : [{ idx: 0 }]
+    : [];
 
   if (isLoading) {
     return (
@@ -145,27 +208,70 @@ export default function RouteDetailPage() {
       {/* Van Assignments */}
       <Card variant="default" padding="sm" className="mb-6">
         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Van Assignments</h3>
-        {route.vans.length > 0 ? (
+        <p className="text-xs text-gray-600 mb-4">
+          Assigning a driver caps the van at the driver&apos;s capacity — the oldest students get seats
+          first, overflow stays in the waiting pool.
+        </p>
+        {vanTargets.length > 0 ? (
           <div className="space-y-3">
-            {route.vans.map((van, idx) => (
-              <div key={idx} className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-300">Van #{idx + 1}</span>
-                  <span className="text-xs text-gray-500">Capacity: {van.capacity}</span>
+            {vanTargets.map(({ van, idx }) => {
+              const assignedDriverId = stringId(van?.driverId);
+              const populatedDriver =
+                van && typeof van.driverId === "object" && van.driverId !== null
+                  ? van.driverId
+                  : null;
+              const assigned = populatedDriver || driversById[assignedDriverId] || null;
+              const overCapacity = van ? van.studentIds.length > van.capacity : false;
+
+              return (
+                <div key={idx} className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-300">Van #{idx + 1}</span>
+                    <span className="text-xs text-gray-500">Capacity: {van?.capacity ?? "—"}</span>
+                  </div>
+
+                  {assigned ? (
+                    <button
+                      onClick={() => router.push(`/admin/drivers/${assigned._id}`)}
+                      className="text-sm text-green-400 hover:text-green-300 transition-colors"
+                    >
+                      Driver: {assigned.name} ({assigned.phone})
+                    </button>
+                  ) : (
+                    <p className="text-sm text-gray-600">No driver assigned</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {van
+                      ? `${van.studentIds.length} / ${van.capacity ?? "?"} students on van`
+                      : `${route.totalStudents} students on route — assigning a driver creates the first van`}
+                  </p>
+                  {van && overCapacity && (
+                    <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> Van is over the listed capacity — assign a larger vehicle.
+                    </p>
+                  )}
+
+                  <div className="mt-3 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                    <Select
+                      options={driverOptions}
+                      placeholder="Assign / change driver..."
+                      value={selectedDrivers[idx] || ""}
+                      onChange={(e) => setSelectedDrivers((prev) => ({ ...prev, [idx]: e.target.value }))}
+                      wrapperClassName="w-full sm:flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      isLoading={assignLoading === idx}
+                      onClick={() => handleAssignDriver(idx, selectedDrivers[idx] || "")}
+                      leftIcon={<Car size={14} />}
+                    >
+                      Assign
+                    </Button>
+                  </div>
                 </div>
-                {van.driverId ? (
-                  <button
-                    onClick={() => router.push(`/admin/drivers/${van.driverId?._id}`)}
-                    className="text-sm text-green-400 hover:text-green-300 transition-colors"
-                  >
-                    Driver: {van.driverId.name} ({van.driverId.phone})
-                  </button>
-                ) : (
-                  <p className="text-sm text-gray-600">No driver assigned</p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">{van.studentIds.length} students</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-sm text-gray-600">No van assignments</p>

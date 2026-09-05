@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { stagger, fadeUp } from "@/lib/animations";
-import { Check, X, Users, Clock, MapPin } from "lucide-react";
+import { Check, X, Users, Clock, MapPin, Car } from "lucide-react";
+import { Select } from "@/components/ui/Select";
 
 interface RouteCandidateItem {
   _id: string;
@@ -23,15 +24,23 @@ interface RouteCandidateItem {
   createdAt: string;
 }
 
+export interface DriverOption {
+  value: string;
+  label: string;
+  vehicleCapacity: number;
+}
+
 interface RouteClusterViewProps {
   candidates: RouteCandidateItem[];
+  driverOptions: DriverOption[];
   isLoading?: boolean;
-  onApprove: (candidateId: string, routeName: string) => Promise<void>;
+  onApprove: (candidateId: string, routeName: string, driverId: string) => Promise<void>;
   onReject: (candidateId: string) => Promise<void>;
 }
 
 export function RouteClusterView({
   candidates,
+  driverOptions,
   isLoading,
   onApprove,
   onReject,
@@ -39,6 +48,7 @@ export function RouteClusterView({
   const [processing, setProcessing] = useState<string | null>(null);
   const [namingId, setNamingId] = useState<string | null>(null);
   const [routeName, setRouteName] = useState("");
+  const [driverId, setDriverId] = useState("");
   const toast = useToast();
 
   const handleApprove = async (id: string) => {
@@ -48,10 +58,11 @@ export function RouteClusterView({
     }
     setProcessing(id);
     try {
-      await onApprove(id, routeName.trim());
+      await onApprove(id, routeName.trim(), driverId);
       toast.success("Route activated successfully");
       setNamingId(null);
       setRouteName("");
+      setDriverId("");
     } catch {
       toast.error("Failed to activate route");
     } finally {
@@ -152,6 +163,26 @@ export function RouteClusterView({
                       placeholder="Route name..."
                       className="w-full rounded-lg bg-white/[0.03] border border-white/[0.08] text-sm px-3 py-2 text-gray-200 outline-none focus:border-green-500/50"
                     />
+                    <Select
+                      options={[
+                        { value: "", label: "No driver (stays candidate)" },
+                        ...driverOptions.map((d) => ({
+                          value: d.value,
+                          label: `${d.label} — seats ${d.vehicleCapacity}`,
+                        })),
+                      ]}
+                      value={driverId}
+                      onChange={(e) => setDriverId(e.target.value)}
+                      placeholder="Assign a driver (optional)"
+                      wrapperClassName="w-full"
+                    />
+                    {driverId && (
+                      <p className="text-[11px] text-gray-500 flex items-center gap-1">
+                        <Car size={12} className="text-gray-600" />
+                        Oldest students up to the driver&apos;s capacity get seats; overflow stays
+                        in the waiting pool.
+                      </p>
+                    )}
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -165,7 +196,7 @@ export function RouteClusterView({
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => { setNamingId(null); setRouteName(""); }}
+                        onClick={() => { setNamingId(null); setRouteName(""); setDriverId(""); }}
                       >
                         Cancel
                       </Button>

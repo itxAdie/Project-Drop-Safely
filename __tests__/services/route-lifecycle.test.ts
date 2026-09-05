@@ -8,6 +8,7 @@ let mockRouteFindById: jest.Mock;
 let mockRouteUpdate: jest.Mock;
 let mockCandidateFindById: jest.Mock;
 let mockCandidateUpdate: jest.Mock;
+let mockStudentFind: jest.Mock;
 let mockStudentUpdateMany: jest.Mock;
 let mockDriverFindById: jest.Mock;
 
@@ -46,6 +47,13 @@ jest.mock("@/lib/db/models", () => ({
   },
   RouteCandidate: {},
   Student: {
+    find: jest.fn(() => ({
+      sort: jest.fn(() => ({
+        lean: jest.fn(() => ({
+          exec: jest.fn(() => mockStudentFind()),
+        })),
+      })),
+    })),
     updateMany: jest.fn(() => mockStudentUpdateMany()),
   },
   Driver: {
@@ -66,6 +74,7 @@ jest.mock("@/lib/repositories/student.repository", () => ({
 }));
 
 import { RouteLifecycleService } from "@/lib/services/route-lifecycle.service";
+import { Student, Route } from "@/lib/db/models";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -93,6 +102,10 @@ function makeRoute(overrides = {}) {
   };
 }
 
+function studentDocs(ids: string[]) {
+  return ids.map((id, i) => ({ _id: id, createdAt: new Date(2026, 0, i + 1) }));
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("RouteLifecycleService", () => {
@@ -103,10 +116,13 @@ describe("RouteLifecycleService", () => {
     mockRouteUpdate = jest.fn();
     mockCandidateFindById = jest.fn();
     mockCandidateUpdate = jest.fn();
+    mockStudentFind = jest.fn();
     mockStudentUpdateMany = jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue({}),
     });
     mockDriverFindById = jest.fn();
+    mockStudentFind.mockResolvedValue(studentDocs(["s1", "s2", "s3"]));
+    (Route.findByIdAndUpdate as jest.Mock).mockClear();
 
     service = new RouteLifecycleService();
   });
@@ -158,9 +174,96 @@ describe("RouteLifecycleService", () => {
     it("updates students with route assignment on activation", async () => {
       mockCandidateFindById.mockResolvedValue(makeCandidate());
       mockDriverFindById.mockResolvedValue({ _id: "d1", vehicleCapacity: 14 });
+      mockStudentFind.mockResolvedValue(studentDocs(["s1", "s2", "s3"]));
 
       await service.activateRoute("cand-1", "Route C", "d1");
       expect(mockStudentUpdateMany).toHaveBeenCalled();
+    });
+
+    it("allocates the oldest students up to driver capacity and leaves overflow in the waiting pool", async () => {
+      mockCandidateFindById.mockResolvedValue(
+        makeCandidate({ studentIds: ["s1", "s2", "s3"] }),
+      );
+      mockDriverFindById.mockResolvedValue({ _id: "d1", vehicleCapacity: 10 });
+      // s1 and s2 registered before s3 → s3 is the overflow student
+      mockStudentFind.mockResolvedValue(studentDocs(["s1", "s2", "s3"]));
+
+      const route = await service.activateRoute("cand-1", "Route Cap", "d1");
+
+      expect(route.status).toBe("active");
+      expect(route.vans[0].capacity).toBe(10);
+      expect(route.vans[0].studentIds).toEqual(["s1", "s2", "s3"]);
+
+      // Only the students who fit are assigned; no student is dropped.
+      expect(Student.updateMany).toHaveBeenCalledWith(
+        { _id: { $in: ["s1", "s2", "s3"] } },
+        expect.objectContaining({
+          $set: { assignedRouteId: "new-route-id", status: "active" },
+        }),
+      );
+    });
+
+    it("caps the assigned students at driver capacity when there are more students than seats", async () => {
+      mockCandidateFindById.mockResolvedValue(
+        makeCandidate({ studentIds: ["s1", "s2", "s3"] }),
+      );
+      mockDriverFindById.mockResolvedValue({ _id: "d1", vehicleCapacity: 2 });
+      mockStudentFind.mockResolvedValue(studentDocs(["s1", "s2", "s3"]));
+
+      const route = await service.activateRoute("cand-1", "Route Caps", "d1");
+
+      expect(route.vans[0].capacity).toBe(2);
+      expect(route.vans[0].studentIds).toEqual(["s1", "s2"]);
+
+      // The overflow student (s3) is NOT assigned → stays in the waiting pool.
+      expect(Student.updateMany).toHaveBeenCalledWith(
+        { _id: { $in: ["s1", "s2"] } },
+        expect.objectContaining({
+          $set: { assignedRouteId: "new-route-id", status: "active" },
+        }),
+      );
+    });
+  });
+
+  // ── assignDriverToRoute ─────────────────────────────────────────────────
+
+  describe("assignDriverToRoute()", () => {
+    it("throws ValidationError when the van already exceeds the driver's capacity", async () => {
+      mockRouteFindById.mockResolvedValue(
+        makeRoute({ vans: [{ driverId: "d-old", studentIds: ["a", "b", "c"], capacity: 14 }] }),
+      );
+      mockDriverFindById.mockResolvedValue({ _id: "d-small", vehicleCapacity: 2 });
+
+      await expect(
+        service.assignDriverToRoute("route-1", "d-small", 0),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("allows assigning a driver whose capacity covers the van population", async () => {
+      mockRouteFindById.mockResolvedValue(
+        makeRoute({ vans: [{ driverId: "d-old", studentIds: ["a", "b", "c"], capacity: 14 }] }),
+      );
+      mockDriverFindById.mockResolvedValue({ _id: "d-big", vehicleCapacity: 10 });
+
+      await expect(
+        service.assignDriverToRoute("route-1", "d-big", 0),
+      ).resolves.toBeUndefined();
+    });
+
+    it("backfills a newly created van with the route's seat-holders, capped at capacity", async () => {
+      mockRouteFindById.mockResolvedValue(
+        makeRoute({ vans: [], totalStudents: 5 }),
+      );
+      mockDriverFindById.mockResolvedValue({ _id: "d1", vehicleCapacity: 3 });
+      mockStudentFind.mockResolvedValue(studentDocs(["s1", "s2", "s3", "s4", "s5"]));
+
+      await service.assignDriverToRoute("route-1", "d1", 0);
+
+      const pushCall = (Route.findByIdAndUpdate as jest.Mock).mock.calls[0];
+      expect(pushCall[0]).toBe("route-1");
+      // New van holds only the (oldest) students that fit the capacity
+      expect(pushCall[1].$push.vans.studentIds).toEqual(["s1", "s2", "s3"]);
+      expect(pushCall[1].$push.vans.capacity).toBe(3);
     });
   });
 
