@@ -6,6 +6,7 @@ import { CLUSTER_RADIUS_KM, MIN_STUDENTS_PER_ROUTE, DEPOSIT_AMOUNT } from "@/lib
 import type { IStudent, IRoute } from "@/types";
 import type { IStudentService } from "./interfaces";
 import { normalizePhone } from "@/lib/utils/phone";
+import { autoFillService } from "./auto-fill.service";
 import type { UserRole } from "@/types/enums";
 
 const studentRepo = new StudentRepository();
@@ -94,20 +95,92 @@ const student = await Student.create({
     const allowedFields = [
       "name", "parentPhone", "pickupAddress", "pickupLocation",
       "institute", "classStartTime", "classEndTime", "permanentOffDays",
+      "status",
     ];
     const filtered: Record<string, unknown> = {};
     for (const key of allowedFields) {
       if (key in data) filtered[key] = (data as Record<string, unknown>)[key];
     }
+
+    const current = await studentRepo.findById(id);
+    if (!current) throw new NotFoundError("Student");
+
+    // Deactivating/suspending frees the van seat so a waiting student can
+    // take it over, and clears the assignment so the student rejoins the
+    // waiting pool on their next activation.
+    const targetStatus = filtered.status as string | undefined;
+    let freedRouteId: string | null = null;
+    if (targetStatus === "inactive" || targetStatus === "suspended") {
+      freedRouteId = await this.#releaseVanSeat(current);
+      filtered.assignedRouteId = null;
+      filtered.vanIndex = null;
+    }
+
     const updated = await studentRepo.update(id, filtered as Partial<IStudent>);
     if (!updated) throw new NotFoundError("Student");
+
+    // A newly activated student enters the waiting pool — try to seat them
+    // immediately on a matching active route with a free seat.
+    if (targetStatus === "active") {
+      await autoFillService.fillFreeSeats({ city: updated.city });
+    } else if (freedRouteId) {
+      // Refill the freed seat from the waiting pool.
+      await autoFillService.fillFreeSeats({ routeId: freedRouteId });
+    }
+
     return updated;
   }
 
   async deactivateStudent(id: string): Promise<void> {
     await connectDB();
-    const updated = await studentRepo.update(id, { status: "inactive" } as Partial<IStudent>);
-    if (!updated) throw new NotFoundError("Student");
+    const student = await studentRepo.findById(id);
+    if (!student) throw new NotFoundError("Student");
+
+    const freedRouteId = await this.#releaseVanSeat(student);
+
+    const updates: Record<string, unknown> = {
+      status: "inactive",
+      assignedRouteId: null,
+      vanIndex: null,
+    };
+    await studentRepo.update(id, updates as Partial<IStudent>);
+
+    // Refill the freed seat from the waiting pool.
+    if (freedRouteId) {
+      await autoFillService.fillFreeSeats({ routeId: freedRouteId });
+    }
+  }
+
+  /**
+   * Remove a student from their van's student list and decrement the route's
+   * student count. Returns the freed route id (or null if the student had no
+   * van seat).
+   */
+  async #releaseVanSeat(student: IStudent): Promise<string | null> {
+    if (!student.assignedRouteId) return null;
+
+    const route = (await Route.findById(student.assignedRouteId)
+      .lean()
+      .exec()) as unknown as IRoute | null;
+    if (!route) return null;
+
+    const vanIdx =
+      student.vanIndex ??
+      route.vans.findIndex((v) =>
+        v.studentIds.some((sid) => String(sid) === student._id.toString()),
+      );
+
+    if (vanIdx >= 0 && vanIdx < route.vans.length) {
+      await Route.updateOne(
+        { _id: route._id },
+        {
+          $pull: { [`vans.${vanIdx}.studentIds`]: student._id },
+          $inc: { totalStudents: -1 },
+        },
+      ).exec();
+    }
+
+    return route._id.toString();
   }
 
   async getMatchingProgress(studentId: string): Promise<{ matched: number; required: number }> {

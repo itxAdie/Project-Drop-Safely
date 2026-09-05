@@ -36,6 +36,28 @@ export class StudentRepository extends BaseRepository<IStudent> {
       .exec() as unknown as IStudent[];
   }
 
+  async findNearbyUnassigned(
+    lng: number,
+    lat: number,
+    radiusKm: number,
+    city?: string,
+  ): Promise<IStudent[]> {
+    return this.model
+      .find({
+        pickupLocation: {
+          $near: {
+            $geometry: { type: "Point", coordinates: [lng, lat] },
+            $maxDistance: radiusKm * 1000,
+          },
+        },
+        status: "active",
+        assignedRouteId: null,
+        ...(city ? { city } : {}),
+      })
+      .lean()
+      .exec() as unknown as IStudent[];
+  }
+
   async findByStatusAndCity(city: string, status: string): Promise<IStudent[]> {
     return this.model
       .find({ city, status })

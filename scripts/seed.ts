@@ -363,9 +363,9 @@ async function seed() {
       zone: "DHA Zone",
       institutes: ["University of Punjab", "COMSATS University", "LUMS"],
       centroid: [74.4105, 31.487] as [number, number],
-      timeSlots: ["morning", "afternoon"],
+      timeSlots: ["morning"],
       driverPhone: "03002220001",
-      studentPhones: ["03001110001", "03001110002", "03001110003", "03001110004", "03001110005", "03001110006", "03001110007", "03001110017", "03001110018", "03001110019", "03001110020", "03001110021"],
+      studentPhones: ["03001110001", "03001110002", "03001110003", "03001110004", "03001110005", "03001110017", "03001110018", "03001110019", "03001110021"],
     },
     {
       key: "johar",

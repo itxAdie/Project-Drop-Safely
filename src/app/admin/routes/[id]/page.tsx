@@ -41,6 +41,18 @@ interface DriverRow {
   vehicleCapacity: number;
 }
 
+interface RouteStudent {
+  _id: string;
+  name: string;
+  phone: string;
+  parentPhone: string | null;
+  pickupAddress: string;
+  institute: string;
+  paymentStatus: string;
+  status: string;
+  vanIndex: number;
+}
+
 function stringId(id: string | { _id: string } | null | undefined): string {
   if (!id) return "";
   return typeof id === "string" ? id : id._id;
@@ -54,6 +66,7 @@ export default function RouteDetailPage() {
   const id = params.id as string;
 
   const { data, isLoading } = useSWR<{ data: RouteDetail }>(`/api/routes/${id}`);
+  const { data: rosterData } = useSWR<{ data: RouteStudent[] }>(`/api/routes/${id}/students`);
   const { data: driversData } = useSWR<{ data: DriverRow[] }>(
     "/api/drivers?isApproved=true&pageSize=100",
   );
@@ -125,6 +138,19 @@ export default function RouteDetailPage() {
       ? route.vans.map((van, idx) => ({ van, idx }))
       : [{ idx: 0 }]
     : [];
+
+  const studentsByVan = useMemo(() => {
+    const groups = new Map<number, RouteStudent[]>();
+    for (const s of rosterData?.data || []) {
+      const list = groups.get(s.vanIndex) || [];
+      list.push(s);
+      groups.set(s.vanIndex, list);
+    }
+    return groups;
+  }, [rosterData]);
+
+  const paymentVariant = (p: string): "success" | "danger" | "info" | "warning" =>
+    p === "verified" ? "success" : p === "overdue" ? "danger" : p === "submitted" ? "info" : "warning";
 
   if (isLoading) {
     return (
@@ -275,6 +301,50 @@ export default function RouteDetailPage() {
           </div>
         ) : (
           <p className="text-sm text-gray-600">No van assignments</p>
+        )}
+      </Card>
+
+      {/* Students on Route */}
+      <Card variant="default" padding="sm" className="mb-6">
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Students on Route</h3>
+        {studentsByVan.size > 0 ? (
+          <div className="space-y-4">
+            {[...studentsByVan.entries()].map(([vanIndex, students]) => {
+              const van = route.vans[vanIndex];
+              return (
+                <div key={vanIndex}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-300">Van #{vanIndex + 1}</span>
+                    <span className="text-xs text-gray-500">
+                      {students.length} / {van?.capacity ?? "?"} students
+                    </span>
+                  </div>
+                  <div className="divide-y divide-white/[0.04] border border-white/[0.04] rounded-lg overflow-hidden">
+                    {students.map((student) => (
+                      <div
+                        key={student._id}
+                        className="flex items-center justify-between gap-3 px-3 py-2 bg-white/[0.02]"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-200 truncate">{student.name}</p>
+                            <Badge variant={paymentVariant(student.paymentStatus)} size="sm">
+                              {student.paymentStatus}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate">
+                            {student.phone} · {student.institute} · {student.pickupAddress}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600">No students on this route yet</p>
         )}
       </Card>
 

@@ -65,6 +65,9 @@ const studentSchema = new Schema<IStudent>(
       type: Schema.Types.ObjectId,
       ref: "Route",
     },
+    vanIndex: {
+      type: Number,
+    },
     status: {
       type: String,
       enum: ["pending", "active", "inactive", "suspended"],

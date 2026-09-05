@@ -4,6 +4,7 @@ import { RouteRepository } from "@/lib/repositories/route.repository";
 import { RouteCandidateRepository } from "@/lib/repositories/route-candidate.repository";
 import { StudentRepository } from "@/lib/repositories/student.repository";
 import { DriverRepository } from "@/lib/repositories/driver.repository";
+import { autoFillService } from "./auto-fill.service";
 import { NotFoundError, AppError, ValidationError } from "@/lib/errors";
 import type { IRoute, IRouteCandidate, GeoPoint } from "@/types";
 import type { IRouteLifecycleService } from "./interfaces";
@@ -101,18 +102,22 @@ export class RouteLifecycleService implements IRouteLifecycleService {
     const routeObj = route.toObject() as unknown as IRoute;
 
     // Update only the students who fit on the route: assign route, set active
+    const studentSet: Record<string, unknown> = {
+      assignedRouteId: routeObj._id,
+      status: "active",
+    };
+    if (driverId) studentSet.vanIndex = 0;
     await Student.updateMany(
       { _id: { $in: assignedStudentIds } },
-      {
-        $set: {
-          assignedRouteId: routeObj._id,
-          status: "active",
-        },
-      },
+      { $set: studentSet },
     ).exec();
 
     // Mark candidate as approved
     await candidateRepo.update(candidateId, { status: "approved" } as Partial<IRouteCandidate>);
+
+    // Top up free seats on other active routes from the remaining waiting pool
+    // (students this candidate's van couldn't hold, plus any others waiting).
+    await autoFillService.fillFreeSeats({ city: candidate.city });
 
     return routeObj;
   }
@@ -186,6 +191,10 @@ export class RouteLifecycleService implements IRouteLifecycleService {
     await Driver.findByIdAndUpdate(driverId, {
       $addToSet: { assignedRouteIds: route._id },
     }).exec();
+
+    // Fill any seats this assignment left free from the waiting pool — either
+    // on the existing van (driver swap) or on the freshly created van.
+    await autoFillService.fillFreeSeats({ routeId });
   }
 
   /**

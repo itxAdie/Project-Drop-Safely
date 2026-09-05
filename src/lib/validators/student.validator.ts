@@ -34,6 +34,7 @@ export const updateStudentSchema = z.object({
   permanentOffDays: z
     .array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]))
     .optional(),
+  status: z.enum(["active", "inactive", "suspended"]).optional(),
 });
 
 export const createDayOffSchema = z.object({

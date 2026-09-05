@@ -96,6 +96,7 @@ export interface IStudent {
   permanentOffDays: DayOfWeekString[];
   suddenOffDays: string[];
   assignedRouteId?: Types.ObjectId;
+  vanIndex?: number;
   status: StudentStatusString;
   paymentStatus: PaymentStatusString;
   billingCycleStart?: Date;

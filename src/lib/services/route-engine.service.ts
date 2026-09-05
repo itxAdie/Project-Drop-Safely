@@ -4,6 +4,7 @@ import { StudentRepository } from "@/lib/repositories/student.repository";
 import { CLUSTER_RADIUS_KM, MIN_STUDENTS_PER_ROUTE } from "@/lib/constants";
 import { clusteringService } from "./clustering.service";
 import { pickupSequencerService } from "./pickup-sequencer.service";
+import { autoFillService } from "./auto-fill.service";
 import { escapeRegex } from "@/lib/utils/formatters";
 import type { IStudent, GeoPoint } from "@/types";
 import type { IRouteEngineService } from "./interfaces";
@@ -46,6 +47,10 @@ export class RouteEngineService implements IRouteEngineService {
    */
   async generateCandidates(city: string): Promise<void> {
     await connectDB();
+
+    // Fill free seats on active routes first so the waiting pool only feeds
+    // clustering students that no existing route can take.
+    await autoFillService.fillFreeSeats({ city });
 
     const clusters = await clusteringService.clusterStudents(city);
 

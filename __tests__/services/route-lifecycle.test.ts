@@ -73,6 +73,13 @@ jest.mock("@/lib/repositories/student.repository", () => ({
   StudentRepository: jest.fn().mockImplementation(() => ({})),
 }));
 
+jest.mock("@/lib/services/auto-fill.service", () => ({
+  AutoFillService: jest.fn(),
+  autoFillService: {
+    fillFreeSeats: jest.fn().mockResolvedValue({ routesConsidered: 0, assigned: 0 }),
+  },
+}));
+
 import { RouteLifecycleService } from "@/lib/services/route-lifecycle.service";
 import { Student, Route } from "@/lib/db/models";
 import { NotFoundError, ValidationError } from "@/lib/errors";
@@ -177,7 +184,14 @@ describe("RouteLifecycleService", () => {
       mockStudentFind.mockResolvedValue(studentDocs(["s1", "s2", "s3"]));
 
       await service.activateRoute("cand-1", "Route C", "d1");
-      expect(mockStudentUpdateMany).toHaveBeenCalled();
+
+      // Seated students are tagged with their van index (van #0 at activation).
+      expect(Student.updateMany).toHaveBeenCalledWith(
+        { _id: { $in: ["s1", "s2", "s3"] } },
+        expect.objectContaining({
+          $set: { assignedRouteId: "new-route-id", status: "active", vanIndex: 0 },
+        }),
+      );
     });
 
     it("allocates the oldest students up to driver capacity and leaves overflow in the waiting pool", async () => {
@@ -198,7 +212,7 @@ describe("RouteLifecycleService", () => {
       expect(Student.updateMany).toHaveBeenCalledWith(
         { _id: { $in: ["s1", "s2", "s3"] } },
         expect.objectContaining({
-          $set: { assignedRouteId: "new-route-id", status: "active" },
+          $set: { assignedRouteId: "new-route-id", status: "active", vanIndex: 0 },
         }),
       );
     });
@@ -219,7 +233,7 @@ describe("RouteLifecycleService", () => {
       expect(Student.updateMany).toHaveBeenCalledWith(
         { _id: { $in: ["s1", "s2"] } },
         expect.objectContaining({
-          $set: { assignedRouteId: "new-route-id", status: "active" },
+          $set: { assignedRouteId: "new-route-id", status: "active", vanIndex: 0 },
         }),
       );
     });
